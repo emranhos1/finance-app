@@ -95,6 +95,8 @@ public class ReportsController {
     private static final List<Integer> PAGE_SIZE_OPTIONS = Arrays.asList(5, 10, 20, 50, 100);
     private int logCurrentPage = 0;
     private int logTotalPages = 1;
+    /** Transaction date for each log row on the current page (by transaction id). */
+    private Map<Long, LocalDate> logTxDates = new java.util.HashMap<>();
 
     @FXML
     public void initialize() {
@@ -106,7 +108,7 @@ public class ReportsController {
         accountTypeColumn.setCellValueFactory(new PropertyValueFactory<>("accountType"));
         accountBalanceColumn.setCellValueFactory(new PropertyValueFactory<>("balance"));
 
-        logDateColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getCreatedAt().format(DATE_FORMAT)));
+        logDateColumn.setCellValueFactory(cd -> new SimpleStringProperty(logDate(cd.getValue(), logTxDates).format(DATE_FORMAT)));
         logAmountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         logBalanceBeforeColumn.setCellValueFactory(new PropertyValueFactory<>("balanceBefore"));
         logBalanceAfterColumn.setCellValueFactory(new PropertyValueFactory<>("balanceAfter"));
@@ -371,10 +373,24 @@ public class ReportsController {
 
         logCurrentPage = result.getNumber();
         logTotalPages = Math.max(result.getTotalPages(), 1);
+        logTxDates = txDatesFor(result.getContent());
         accountLogTable.setItems(FXCollections.observableArrayList(result.getContent()));
         logPageLabel.setText("Page " + (logCurrentPage + 1) + " of " + logTotalPages + " (" + result.getTotalElements() + " total)");
         logPrevPageBtn.setDisable(logCurrentPage <= 0);
         logNextPageBtn.setDisable(logCurrentPage >= logTotalPages - 1);
+    }
+
+    private Map<Long, LocalDate> txDatesFor(List<AccountLog> logs) {
+        List<Long> ids = new ArrayList<>();
+        for (AccountLog l : logs) if (l.getReferenceId() != null) ids.add(l.getReferenceId());
+        return transactionService.getDatesByIds(ids);
+    }
+
+    /** The date a log row belongs to: its transaction's date (same date the Transaction tab and the
+     *  date filter use), or when the row was written if it has no transaction (manual/deleted). */
+    private static LocalDate logDate(AccountLog l, Map<Long, LocalDate> txDates) {
+        LocalDate txDate = l.getReferenceId() != null ? txDates.get(l.getReferenceId()) : null;
+        return txDate != null ? txDate : l.getCreatedAt().toLocalDate();
     }
 
     @FXML
@@ -412,8 +428,9 @@ public class ReportsController {
             for (Map.Entry<String, List<AccountLog>> entry : exportMap.entrySet()) {
                 fw.write("Account: " + entry.getKey() + "\n");
                 fw.write("Date,Change,Reference,Amount,Balance Before,Balance After,Note\n");
+                Map<Long, LocalDate> txDates = txDatesFor(entry.getValue());
                 for (AccountLog l : entry.getValue()) {
-                    fw.write(l.getCreatedAt().format(DATE_FORMAT) + ","
+                    fw.write(logDate(l, txDates).format(DATE_FORMAT) + ","
                             + l.getChangeType().name() + ","
                             + l.getReferenceType().name() + ","
                             + l.getAmount() + ","

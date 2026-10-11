@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -105,9 +104,10 @@ public class AccountService {
     public Page<AccountLog> searchAccountLogs(List<Long> accountIds, LocalDate fromDate, LocalDate toDate,
                                               AccountLog.ReferenceType referenceType, Long categoryId,
                                               Pageable pageable) {
-        LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
-        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.of(9999, 1, 1, 0, 0);
-        return accountLogRepository.search(accountIds, from, to, referenceType, categoryId, pageable);
+        LocalDate fromDay = fromDate != null ? fromDate : LocalDate.of(1970, 1, 1);
+        LocalDate toDay = toDate != null ? toDate : LocalDate.of(9998, 12, 31);
+        return accountLogRepository.search(accountIds, fromDay, toDay,
+                fromDay.atStartOfDay(), toDay.plusDays(1).atStartOfDay(), referenceType, categoryId, pageable);
     }
 
     public List<AccountLog> getAllLogsByUserId(Long userId) {

@@ -16,7 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -346,6 +349,14 @@ public class TransactionService {
     public BigDecimal getExpenseFiltered(Long userId, List<Long> accountIds, Long categoryId, LocalDate start, LocalDate end) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
         return transactionRepository.sumExpenseFiltered(userId, accountIds, categoryId, start, end);
+    }
+
+    /** Transaction id -> its date, for showing an Account Log row under the transaction's own date. */
+    public Map<Long, LocalDate> getDatesByIds(Collection<Long> ids) {
+        Map<Long, LocalDate> dates = new HashMap<>();
+        if (ids == null || ids.isEmpty()) return dates;
+        for (Transaction t : transactionRepository.findAllById(ids)) dates.put(t.getId(), t.getDate());
+        return dates;
     }
 
     public BigDecimal getNetIncome(Long userId, LocalDate startDate, LocalDate endDate) {
