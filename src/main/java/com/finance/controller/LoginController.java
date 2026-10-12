@@ -3,19 +3,30 @@ package com.finance.controller;
 import com.finance.FinanceApplication;
 import com.finance.context.SessionContext;
 import com.finance.entity.User;
+import com.finance.service.UpdateService;
 import com.finance.service.UserService;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Optional;
 
 @Controller
@@ -23,12 +34,101 @@ import java.util.Optional;
 public class LoginController {
     private final UserService userService;
     private final SessionContext sessionContext;
+    private final UpdateService updateService;
 
     @FXML
     private TextField usernameField;
 
     @FXML
     private PasswordField passwordField;
+
+    @FXML private VBox updateBanner;
+    @FXML private Label updateLabel;
+    @FXML private Button updateButton;
+    @FXML private ProgressBar updateProgress;
+    @FXML private Label versionLabel;
+    private UpdateService.ReleaseInfo availableUpdate;
+
+    /** Shows the running version and checks GitHub for a newer one in the background, so a slow
+     *  or missing internet connection never delays the login screen. */
+    @FXML
+    public void initialize() {
+        versionLabel.setText("Version " + updateService.getCurrentVersion());
+        Thread check = new Thread(() -> updateService.checkForUpdate().ifPresent(release ->
+                Platform.runLater(() -> showUpdateBanner(release))), "update-check");
+        check.setDaemon(true);
+        check.start();
+    }
+
+    private void showUpdateBanner(UpdateService.ReleaseInfo release) {
+        availableUpdate = release;
+        updateLabel.setText("New version " + release.getVersion() + " is available (you have "
+                + updateService.getCurrentVersion() + ").");
+        updateBanner.setVisible(true);
+        updateBanner.setManaged(true);
+        // the login window has a fixed size; grow it by the banner's height so nothing gets squeezed
+        Window window = updateBanner.getScene() != null ? updateBanner.getScene().getWindow() : null;
+        if (window != null) window.setHeight(window.getHeight() + updateBanner.prefHeight(updateBanner.getWidth()) + 8);
+    }
+
+    @FXML
+    public void handleShowReleaseNotes() {
+        if (availableUpdate == null) return;
+        TextArea notes = new TextArea(availableUpdate.getNotes());
+        notes.setEditable(false);
+        notes.setWrapText(true);
+        notes.setPrefSize(520, 360);
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("What's new in " + availableUpdate.getVersion());
+        alert.setHeaderText(null);
+        alert.getDialogPane().setContent(notes);
+        alert.showAndWait();
+    }
+
+    /** Asks where to save the update installer, downloads it there, then opens its wizard (which
+     *  asks where to install) and closes this app so its files can be replaced. Data in MySQL is
+     *  never touched. */
+    @FXML
+    public void handleUpdate() {
+        if (availableUpdate == null) return;
+        UpdateService.ReleaseInfo release = availableUpdate;
+
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Where should the update " + release.getVersion() + " be downloaded?");
+        File downloads = new File(System.getProperty("user.home"), "Downloads");
+        if (downloads.isDirectory()) chooser.setInitialDirectory(downloads);
+        File folder = chooser.showDialog(updateButton.getScene().getWindow());
+        if (folder == null) return;
+
+        updateButton.setDisable(true);
+        updateButton.setText("Downloading...");
+        updateProgress.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        updateProgress.setVisible(true);
+        updateProgress.setManaged(true);
+
+        Thread worker = new Thread(() -> {
+            try {
+                Path installer = updateService.downloadInstaller(release, folder.toPath(),
+                        p -> Platform.runLater(() -> updateProgress.setProgress(p)));
+                updateService.launchInstaller(installer);
+                Platform.runLater(() -> {
+                    Platform.exit();
+                    System.exit(0);
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    updateButton.setDisable(false);
+                    updateButton.setText("Update now");
+                    updateProgress.setVisible(false);
+                    updateProgress.setManaged(false);
+                    showAlert("Update failed", "Could not update: " + e.getMessage()
+                            + "\nCheck the internet connection and try again.");
+                });
+            }
+        }, "update-download");
+        worker.setDaemon(true);
+        worker.start();
+    }
 
     @FXML
     public void handleLogin() {
