@@ -210,11 +210,29 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         return folder.getId();
     }
 
+    /**
+     * credentials.json is never committed, so builds made by GitHub Actions don't contain it.
+     * On an installed PC the file is copied once by hand next to DFMS.exe (the install folder) -
+     * the update installer never deletes it. Falls back to the copy inside the jar, which is what
+     * a local developer build (mvn javafx:run) uses.
+     */
+    private InputStream openCredentials() throws IOException {
+        String appPath = System.getProperty("jpackage.app-path"); // set by the jpackage launcher (DFMS.exe)
+        File[] candidates = {
+                appPath != null ? new File(new File(appPath).getParentFile(), "credentials.json") : null,
+                new File("credentials.json")
+        };
+        for (File f : candidates) {
+            if (f != null && f.isFile()) return Files.newInputStream(f.toPath());
+        }
+        return GoogleDriveServiceImpl.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+    }
+
     private Credential getCredentials(NetHttpTransport httpTransport) throws Exception {
-        InputStream in = GoogleDriveServiceImpl.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = openCredentials();
         if (in == null) {
-            throw new FileNotFoundException("credentials.json not found in resources. Replace the placeholder " +
-                    "src/main/resources/credentials.json with your real Google OAuth2 credentials before connecting.");
+            throw new FileNotFoundException("credentials.json not found. Copy it into the DFMS install folder " +
+                    "(next to DFMS.exe), then try again.");
         }
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 

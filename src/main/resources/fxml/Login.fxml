@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
@@ -15,6 +16,17 @@
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.LoginController"
       alignment="CENTER" spacing="8" style="-fx-padding: 15 45 15 45;">
+
+    <!-- Shown only when GitHub has a newer release (checked in the background on open) -->
+    <VBox fx:id="updateBanner" spacing="4" visible="false" managed="false"
+          style="-fx-background-color: #FFF4D6; -fx-border-color: #E8C46A; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8;">
+        <Label fx:id="updateLabel" wrapText="true" style="-fx-font-weight: bold;"/>
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <Button fx:id="updateButton" text="Update now" styleClass="btn-primary" onAction="#handleUpdate"/>
+            <Hyperlink text="What's new?" onAction="#handleShowReleaseNotes"/>
+        </HBox>
+        <ProgressBar fx:id="updateProgress" maxWidth="Infinity" visible="false" managed="false"/>
+    </VBox>
 
     <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
         <Image url="@/images/logo.png" />
@@ -38,4 +50,6 @@
     </HBox>
 
     <Hyperlink text="Forgot Password?" onAction="#handleForgotPassword"/>
+
+    <Label fx:id="versionLabel" style="-fx-font-size: 10; -fx-text-fill: #8AA69C;"/>
 </VBox>

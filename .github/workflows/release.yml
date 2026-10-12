@@ -1,0 +1,84 @@
+# Publishes a new GitHub Release automatically whenever code is merged/pushed to the `production`
+# branch AND pom.xml's <version> is one that has not been released yet. Pushes that keep the same
+# version (small fixes not meant as a release) build nothing.
+# For a release, the same commit must also contain release-notes/v<version>.md - it becomes the
+# release text the app shows under "What's new?".
+name: Release
+
+on:
+  push:
+    branches: [production]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide whether this push is a new version
+        id: version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content pom.xml)).project.version
+          "VERSION=$version" >> $env:GITHUB_ENV
+          $existing = git ls-remote --tags origin "refs/tags/v$version"
+          if ($existing) {
+            Write-Host "v$version is already released - nothing to do (bump <version> in pom.xml to release)."
+            "release=false" >> $env:GITHUB_OUTPUT
+          } else {
+            if (-not (Test-Path "release-notes/v$version.md")) { throw "Missing release-notes/v$version.md for new version $version" }
+            "release=true" >> $env:GITHUB_OUTPUT
+          }
+
+      - uses: actions/setup-java@v4
+        if: steps.version.outputs.release == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build jar
+        if: steps.version.outputs.release == 'true'
+        run: mvn -B package -DskipTests
+
+      # credentials.json is not in git: on each PC it is copied once next to DFMS.exe, and the app
+      # reads it from there (see GoogleDriveServiceImpl.openCredentials).
+      - name: Build app image with its own Java runtime (jpackage)
+        if: steps.version.outputs.release == 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force target/jpackage-input | Out-Null
+          Copy-Item target/dfms.jar target/jpackage-input/
+          jpackage --type app-image --name DFMS --input target/jpackage-input --main-jar dfms.jar `
+            --dest target/jpackage --app-version $env:VERSION --vendor DFMS `
+            --icon installer/dfms.ico --java-options "-Dfile.encoding=UTF-8"
+
+      - name: Build installer (Inno Setup)
+        if: steps.version.outputs.release == 'true'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" installer\dfms.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+          $exe = "target/installer/DFMS-Update-$env:VERSION.exe"
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "$exe.sha256" -Value "$hash  DFMS-Update-$env:VERSION.exe" -Encoding ascii
+
+      - name: Publish GitHub Release (also creates the v<version> tag)
+        if: steps.version.outputs.release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: DFMS v${{ env.VERSION }}
+          body_path: release-notes/v${{ env.VERSION }}.md
+          files: |
+            target/installer/DFMS-Update-${{ env.VERSION }}.exe
+            target/installer/DFMS-Update-${{ env.VERSION }}.exe.sha256
