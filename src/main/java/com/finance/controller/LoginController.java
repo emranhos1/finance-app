@@ -53,9 +53,27 @@ public class LoginController {
      *  or missing internet connection never delays the login screen. */
     @FXML
     public void initialize() {
-        versionLabel.setText("Version " + updateService.getCurrentVersion());
-        Thread check = new Thread(() -> updateService.checkForUpdate().ifPresent(release ->
-                Platform.runLater(() -> showUpdateBanner(release))), "update-check");
+        String version = "Version " + updateService.getCurrentVersion();
+        versionLabel.setText(version + "  ·  checking for updates...");
+        Thread check = new Thread(() -> {
+            UpdateService.CheckResult result = updateService.checkForUpdate();
+            Platform.runLater(() -> {
+                switch (result.getStatus()) {
+                    case AVAILABLE:
+                        versionLabel.setText(version + "  ·  update available");
+                        showUpdateBanner(result.getRelease());
+                        break;
+                    case UP_TO_DATE:
+                        versionLabel.setText(version + "  ·  ✓ Up to date");
+                        break;
+                    case FAILED:
+                        versionLabel.setText(version + "  ·  update check failed (no internet?)");
+                        break;
+                    default:
+                        versionLabel.setText(version);
+                }
+            });
+        }, "update-check");
         check.setDaemon(true);
         check.start();
     }

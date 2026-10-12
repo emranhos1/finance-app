@@ -23,7 +23,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.function.DoubleConsumer;
 
 /**
@@ -52,21 +51,32 @@ public class UpdateService {
 
     public String getCurrentVersion() { return currentVersion; }
 
-    /** A newer release with an update installer, or empty if up to date / offline / anything fails. */
-    public Optional<ReleaseInfo> checkForUpdate() {
+    /** Outcome of an update check, so the login screen can say which one happened. */
+    public enum CheckStatus { AVAILABLE, UP_TO_DATE, FAILED, NOT_CHECKED }
+
+    @Data
+    @AllArgsConstructor
+    public static class CheckResult {
+        private CheckStatus status;
+        /** Only set when status is AVAILABLE. */
+        private ReleaseInfo release;
+    }
+
+    /** Asks GitHub for the latest release. Never throws: offline/any error comes back as FAILED. */
+    public CheckResult checkForUpdate() {
         // unfiltered "@project.version@" means a dev run straight from an IDE - never offer updates there
-        if (currentVersion == null || currentVersion.contains("@")) return Optional.empty();
+        if (currentVersion == null || currentVersion.contains("@")) return new CheckResult(CheckStatus.NOT_CHECKED, null);
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.github.com/repos/" + repo + "/releases/latest"))
                     .header("Accept", "application/vnd.github+json")
                     .timeout(Duration.ofSeconds(10))
                     .GET().build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() != 200) return Optional.empty();
+            if (response.statusCode() != 200) return new CheckResult(CheckStatus.FAILED, null);
 
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
             String latest = stripV(json.get("tag_name").getAsString());
-            if (compareVersions(latest, currentVersion) <= 0) return Optional.empty();
+            if (compareVersions(latest, currentVersion) <= 0) return new CheckResult(CheckStatus.UP_TO_DATE, null);
 
             String installerUrl = null;
             String checksumUrl = null;
@@ -78,13 +88,14 @@ public class UpdateService {
                 if (name.startsWith(UPDATE_ASSET_PREFIX) && name.endsWith(".exe")) installerUrl = url;
                 if (name.startsWith(UPDATE_ASSET_PREFIX) && name.endsWith(".exe.sha256")) checksumUrl = url;
             }
-            if (installerUrl == null) return Optional.empty();
+            // newer release whose installer isn't attached (yet) - nothing installable, treat as current
+            if (installerUrl == null) return new CheckResult(CheckStatus.UP_TO_DATE, null);
 
             String notes = json.has("body") && !json.get("body").isJsonNull() ? json.get("body").getAsString() : "";
-            return Optional.of(new ReleaseInfo(latest, notes, installerUrl, checksumUrl));
+            return new CheckResult(CheckStatus.AVAILABLE, new ReleaseInfo(latest, notes, installerUrl, checksumUrl));
         } catch (Exception e) {
-            log.info("Update check skipped: {}", e.toString());
-            return Optional.empty();
+            log.info("Update check failed: {}", e.toString());
+            return new CheckResult(CheckStatus.FAILED, null);
         }
     }
 
