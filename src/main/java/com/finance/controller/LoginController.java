@@ -17,7 +17,10 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.geometry.Insets;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.Screen;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -84,9 +87,21 @@ public class LoginController {
                 + updateService.getCurrentVersion() + ").");
         updateBanner.setVisible(true);
         updateBanner.setManaged(true);
-        // the login window has a fixed size; grow it by the banner's height so nothing gets squeezed
-        Window window = updateBanner.getScene() != null ? updateBanner.getScene().getWindow() : null;
-        if (window != null) window.setHeight(window.getHeight() + updateBanner.prefHeight(updateBanner.getWidth()) + 8);
+        // The login window has a fixed size; grow it by the banner's height so nothing gets squeezed.
+        // Measure at the width the banner will actually get (scene width minus the root's side
+        // padding) - the banner's own width is still 0 right after it becomes visible, and measuring
+        // at 0 wraps the text one letter per line, which made the window as tall as the screen.
+        Scene scene = updateBanner.getScene();
+        Window window = scene != null ? scene.getWindow() : null;
+        if (window != null && updateBanner.getParent() instanceof Region) {
+            Insets pad = ((Region) updateBanner.getParent()).getPadding();
+            double width = scene.getWidth() - pad.getLeft() - pad.getRight();
+            double bannerHeight = updateBanner.prefHeight(width);
+            double spacing = updateBanner.getParent() instanceof VBox ? ((VBox) updateBanner.getParent()).getSpacing() : 0;
+            // never grow past the visible screen height, whatever the measurement says
+            double maxHeight = Screen.getPrimary().getVisualBounds().getHeight();
+            window.setHeight(Math.min(window.getHeight() + bannerHeight + spacing, maxHeight));
+        }
     }
 
     @FXML
