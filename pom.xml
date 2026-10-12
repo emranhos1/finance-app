@@ -9,7 +9,7 @@
     <artifactId>daily-finance-app</artifactId>
     <!-- The app's version: shown to users, compared against GitHub Releases for updates, and must
          match the release tag (v1.1.0 <-> 1.1.0). Bump it for every release. -->
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <packaging>jar</packaging>
 
     <name>Daily Finance Management System</name>
