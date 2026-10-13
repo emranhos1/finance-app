@@ -299,10 +299,15 @@ public class DashboardController {
         backupTask.setOnFailed(e -> {
             Throwable ex = backupTask.getException();
             String reason = ex != null && ex.getMessage() != null ? ex.getMessage() : "Unknown error";
+            // a missing MySQL tool has nothing to do with the internet or Drive - don't send the user there
+            boolean mysqlToolMissing = reason.contains(".exe was not found") || reason.startsWith("Could not start mysql");
             showFailure(dialog, content,
                     "Backup failed: " + reason,
-                    "Check your internet connection and that Google Drive access hasn't been revoked "
-                            + "(reconnect from Admin Panel if needed), then try again. Your local data is safe either way.",
+                    mysqlToolMissing
+                            ? "The app could not find MySQL's mysqldump.exe on this PC. Add the 'bin' folder of your "
+                                    + "MySQL installation to the system PATH, then try again. Your local data is safe either way."
+                            : "Check your internet connection and that Google Drive access hasn't been revoked "
+                                    + "(reconnect from Admin Panel if needed), then try again. Your local data is safe either way.",
                     () -> showBackingUp(dialog, content));
         });
 
