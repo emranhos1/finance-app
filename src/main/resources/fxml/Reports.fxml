@@ -10,8 +10,6 @@
             fitToWidth="true" styleClass="dash-scroll">
 <VBox spacing="10" style="-fx-padding: 15;">
 
-    <Label text="Financial Reports" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
-
     <!-- Page-wide filters: every section below (summary, categories, balances, trend, account log)
          reloads as soon as one of these changes -->
     <HBox spacing="8" style="-fx-alignment: CENTER-LEFT;">

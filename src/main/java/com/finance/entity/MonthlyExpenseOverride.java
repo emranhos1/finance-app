@@ -44,6 +44,16 @@ public class MonthlyExpenseOverride {
     @Column(name = "is_manual", nullable = false)
     private Boolean isManual = false;
 
+    /** The month's total Bank + Cash income - the same figure is kept on both the CASH and the BANK
+     *  row of a month. Null until filled (by the startup backfill, the auto-save or a manual edit). */
+    @Column(name = "income_amount", precision = 15, scale = 2)
+    private BigDecimal incomeAmount;
+
+    /** Same meaning as isManual, but for incomeAmount. */
+    @Builder.Default
+    @Column(name = "is_income_manual", nullable = false)
+    private Boolean isIncomeManual = false;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 

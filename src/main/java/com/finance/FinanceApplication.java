@@ -120,7 +120,7 @@ public class FinanceApplication extends Application {
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         double width = screenBounds.getWidth() * 0.75;
-        double height = screenBounds.getHeight() * 0.82;
+        double height = screenBounds.getHeight() * 0.88;
 
         Scene scene = new Scene(root, width, height);
         applyCSS(scene);

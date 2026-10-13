@@ -13,9 +13,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,15 @@ public class MonthlyExpenseOverrideService {
             byMonth.put(o.getExpenseMonth(), o);
         }
         return byMonth;
+    }
+
+    /** Years to offer in the dashboard's year dropdown: the current year plus every year this user
+     *  has saved monthly figures for, newest first. */
+    public List<Integer> getAvailableYears(Long userId) {
+        TreeSet<Integer> years = new TreeSet<>(Comparator.reverseOrder());
+        years.add(LocalDate.now().getYear());
+        years.addAll(monthlyExpenseOverrideRepository.findDistinctYearsByUserId(userId));
+        return new ArrayList<>(years);
     }
 
     /** User-entered figure (via the ✎ edit button). Always wins - the daily auto-recalculation
@@ -118,6 +129,87 @@ public class MonthlyExpenseOverrideService {
             }
         }
         log.info("Monthly expense backfill check completed");
+    }
+
+    /** A month's total income received into Bank + Cash accounts, from its transactions (loans
+     *  excluded) - the same income the dashboard's expense ring uses. */
+    public BigDecimal calculateIncome(Long userId, List<Account> accounts, YearMonth ym) {
+        List<Long> bankAndCashIds = new ArrayList<>();
+        for (Account a : accounts) {
+            for (String typeName : TRACKED_ACCOUNT_TYPES) {
+                if (typeName.equalsIgnoreCase(a.getAccountType().getName())) bankAndCashIds.add(a.getId());
+            }
+        }
+        return transactionService.getIncomeByAccountIds(userId, bankAndCashIds, ym.atDay(1), ym.atEndOfMonth());
+    }
+
+    /** Month -> a row holding that month's income. The CASH and BANK rows of a month carry the same
+     *  income, so whichever has it filled is returned. Months with no income saved are absent. */
+    public Map<Integer, MonthlyExpenseOverride> getIncomeRecordsForYear(Long userId, int year) {
+        Map<Integer, MonthlyExpenseOverride> byMonth = new LinkedHashMap<>();
+        for (String typeName : TRACKED_ACCOUNT_TYPES) {
+            for (MonthlyExpenseOverride o : monthlyExpenseOverrideRepository
+                    .findByUserIdAndAccountTypeNameAndExpenseYear(userId, typeName, year)) {
+                if (o.getIncomeAmount() != null) byMonth.putIfAbsent(o.getExpenseMonth(), o);
+            }
+        }
+        return byMonth;
+    }
+
+    /** User-entered income (via the income ✎ button). Like saveManualOverride, it always wins over
+     *  the auto-calculation. */
+    public void saveManualIncome(Long userId, int year, int month, BigDecimal amount) {
+        writeIncome(userId, year, month, amount, true);
+    }
+
+    /** Income counterpart of autoSaveCurrentMonth: keeps the month's income in sync with its
+     *  transactions unless the user has manually saved that month's income. */
+    public void autoSaveIncome(Long userId, int year, int month, BigDecimal calculatedAmount) {
+        for (String typeName : TRACKED_ACCOUNT_TYPES) {
+            boolean manual = monthlyExpenseOverrideRepository
+                    .findByUserIdAndAccountTypeNameAndExpenseYearAndExpenseMonth(userId, typeName, year, month)
+                    .map(o -> Boolean.TRUE.equals(o.getIsIncomeManual()))
+                    .orElse(false);
+            if (manual) return;
+        }
+        writeIncome(userId, year, month, calculatedAmount, false);
+    }
+
+    /** The income ↻ button: recalculates one month's income from its transactions and saves it as an
+     *  auto value. Returns the new figure. */
+    public BigDecimal recalculateIncome(Long userId, List<Account> accounts, int year, int month) {
+        BigDecimal amount = calculateIncome(userId, accounts, YearMonth.of(year, month));
+        autoSaveIncome(userId, year, month, amount);
+        return amount;
+    }
+
+    /**
+     * Idempotent backfill: fills income_amount on every row that doesn't have it yet, from that
+     * month's transactions, as an auto (non-manual) value. Rows that already have an income (auto
+     * or manual) are never touched, so after the first run it only fills newly created rows.
+     */
+    public void backfillIncome() {
+        Map<Long, List<Account>> accountsByUser = new LinkedHashMap<>();
+        for (MonthlyExpenseOverride row : monthlyExpenseOverrideRepository.findByIncomeAmountIsNull()) {
+            List<Account> accounts = accountsByUser.computeIfAbsent(row.getUserId(), accountService::getAccountsByUserId);
+            row.setIncomeAmount(calculateIncome(row.getUserId(), accounts,
+                    YearMonth.of(row.getExpenseYear(), row.getExpenseMonth())));
+            row.setIsIncomeManual(false);
+            monthlyExpenseOverrideRepository.save(row);
+        }
+        log.info("Monthly income backfill check completed");
+    }
+
+    /** Writes the same income onto both the CASH and BANK rows of the month, creating a row (with
+     *  a 0 expense, which is what a missing row already shows) if that month has none yet. */
+    private void writeIncome(Long userId, int year, int month, BigDecimal amount, boolean manual) {
+        for (String typeName : TRACKED_ACCOUNT_TYPES) {
+            MonthlyExpenseOverride record = findOrNew(userId, typeName, year, month);
+            if (record.getAmount() == null) record.setAmount(BigDecimal.ZERO);
+            record.setIncomeAmount(amount);
+            record.setIsIncomeManual(manual);
+            monthlyExpenseOverrideRepository.save(record);
+        }
     }
 
     private MonthlyExpenseOverride findOrNew(Long userId, String accountTypeName, int year, int month) {

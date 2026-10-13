@@ -43,7 +43,7 @@ jobs:
         if: steps.version.outputs.release == 'true'
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: maven
 
       - name: Build jar
