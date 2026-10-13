@@ -111,6 +111,7 @@ public class LoginController {
     /** Release notes hold an English part, then a Bangla part after this marker (see release-notes/README.md). */
     private static final String BANGLA_MARKER = "<!-- bn -->";
     private static final String NOTES_LANG_KEY = "releaseNotesLanguage";
+    private static final String DOWNLOAD_FOLDER_KEY = "updateDownloadFolder";
 
     @FXML
     public void handleShowReleaseNotes() {
@@ -163,12 +164,17 @@ public class LoginController {
         if (availableUpdate == null) return;
         UpdateService.ReleaseInfo release = availableUpdate;
 
+        // open where the previous update was saved, so it doesn't have to be browsed to every time
+        Preferences prefs = Preferences.userNodeForPackage(LoginController.class);
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Where should the update " + release.getVersion() + " be downloaded?");
+        File lastFolder = new File(prefs.get(DOWNLOAD_FOLDER_KEY, ""));
         File downloads = new File(System.getProperty("user.home"), "Downloads");
-        if (downloads.isDirectory()) chooser.setInitialDirectory(downloads);
+        if (lastFolder.isDirectory()) chooser.setInitialDirectory(lastFolder);
+        else if (downloads.isDirectory()) chooser.setInitialDirectory(downloads);
         File folder = chooser.showDialog(updateButton.getScene().getWindow());
         if (folder == null) return;
+        prefs.put(DOWNLOAD_FOLDER_KEY, folder.getAbsolutePath());
 
         updateButton.setDisable(true);
         updateButton.setText("Downloading...");
@@ -180,6 +186,7 @@ public class LoginController {
             try {
                 Path installer = updateService.downloadInstaller(release, folder.toPath(),
                         p -> Platform.runLater(() -> updateProgress.setProgress(p)));
+                updateService.deleteOldDownloads(installer);
                 updateService.launchInstaller(installer);
                 Platform.runLater(() -> {
                     Platform.exit();

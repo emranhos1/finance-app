@@ -23,7 +23,10 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.DoubleConsumer;
+import java.util.prefs.Preferences;
 
 /**
  * Checks GitHub Releases for a newer version of the app and downloads/launches its update
@@ -35,6 +38,10 @@ import java.util.function.DoubleConsumer;
 @Slf4j
 public class UpdateService {
     private static final String UPDATE_ASSET_PREFIX = "DFMS-Update-";
+    /** newline-separated full paths of the installers this app has downloaded */
+    private static final String DOWNLOADS_KEY = "downloadedInstallers";
+
+    private final Preferences prefs = Preferences.userNodeForPackage(UpdateService.class);
 
     private final String currentVersion;
     private final String repo;
@@ -100,9 +107,17 @@ public class UpdateService {
     }
 
     /** Downloads the update installer into the folder the user picked, verifying its SHA-256 when
-     *  the release has one. */
+     *  the release has one. If that folder already holds this version's installer intact (e.g. the
+     *  wizard was cancelled last time), it is reused instead of downloaded again. */
     public Path downloadInstaller(ReleaseInfo release, Path folder, DoubleConsumer progress) throws IOException, InterruptedException {
         Path target = folder.resolve(UPDATE_ASSET_PREFIX + release.getVersion() + ".exe");
+        String expected = release.getChecksumUrl() != null ? fetchExpectedChecksum(release) : null;
+        if (expected != null && Files.isRegularFile(target) && expected.equalsIgnoreCase(sha256Of(target))) {
+            progress.accept(1.0);
+            rememberDownload(target);
+            return target;
+        }
+
         HttpRequest request = HttpRequest.newBuilder(URI.create(release.getInstallerUrl())).GET().build();
         HttpResponse<InputStream> response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() != 200) throw new IOException("Download failed (HTTP " + response.statusCode() + ")");
@@ -121,16 +136,67 @@ public class UpdateService {
             }
         }
 
-        if (release.getChecksumUrl() != null) {
-            HttpRequest sumRequest = HttpRequest.newBuilder(URI.create(release.getChecksumUrl())).GET().build();
-            String expected = http.send(sumRequest, HttpResponse.BodyHandlers.ofString()).body().trim().split("\\s+")[0];
-            String actual = toHex(sha256.digest());
-            if (!expected.equalsIgnoreCase(actual)) {
-                Files.deleteIfExists(target);
-                throw new IOException("Downloaded file is corrupted (checksum mismatch) - please try again.");
+        if (expected != null && !expected.equalsIgnoreCase(toHex(sha256.digest()))) {
+            Files.deleteIfExists(target);
+            throw new IOException("Downloaded file is corrupted (checksum mismatch) - please try again.");
+        }
+        rememberDownload(target);
+        return target;
+    }
+
+    /**
+     * Deletes the update installers this app downloaded earlier, keeping only {@code keep}. The
+     * download folder is never scanned: only exact paths the app itself recorded at download time
+     * are touched, so other files in that folder (or another app's installers) are never deleted.
+     * Best effort - a file that can't be deleted (e.g. open elsewhere) stays recorded for next time.
+     */
+    public void deleteOldDownloads(Path keep) {
+        Path keepPath = keep.toAbsolutePath().normalize();
+        List<String> stillThere = new ArrayList<>();
+        for (String recorded : recordedDownloads()) {
+            Path file = Path.of(recorded);
+            if (file.equals(keepPath)) {
+                stillThere.add(recorded);
+                continue;
+            }
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                log.info("Could not delete old installer {}: {}", file, e.toString());
+                stillThere.add(recorded);
             }
         }
-        return target;
+        prefs.put(DOWNLOADS_KEY, String.join("\n", stillThere));
+    }
+
+    private void rememberDownload(Path file) {
+        String path = file.toAbsolutePath().normalize().toString();
+        List<String> recorded = recordedDownloads();
+        if (!recorded.contains(path)) recorded.add(path);
+        prefs.put(DOWNLOADS_KEY, String.join("\n", recorded));
+    }
+
+    private List<String> recordedDownloads() {
+        List<String> list = new ArrayList<>();
+        for (String line : prefs.get(DOWNLOADS_KEY, "").split("\n")) {
+            if (!line.isBlank()) list.add(line.trim());
+        }
+        return list;
+    }
+
+    private String fetchExpectedChecksum(ReleaseInfo release) throws IOException, InterruptedException {
+        HttpRequest sumRequest = HttpRequest.newBuilder(URI.create(release.getChecksumUrl())).GET().build();
+        HttpResponse<String> response = http.send(sumRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) throw new IOException("Could not read the update's checksum (HTTP " + response.statusCode() + ")");
+        return response.body().trim().split("\\s+")[0];
+    }
+
+    private static String sha256Of(Path file) throws IOException {
+        MessageDigest digest = sha256();
+        try (InputStream in = new DigestInputStream(Files.newInputStream(file), digest)) {
+            in.transferTo(java.io.OutputStream.nullOutputStream());
+        }
+        return toHex(digest.digest());
     }
 
     /** Opens the installer's normal wizard, which asks where to install (pre-filled with the
