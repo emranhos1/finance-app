@@ -2,6 +2,8 @@ package com.finance.repository;
 
 import com.finance.entity.MonthlyExpenseOverride;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,4 +15,9 @@ public interface MonthlyExpenseOverrideRepository extends JpaRepository<MonthlyE
 
     Optional<MonthlyExpenseOverride> findByUserIdAndAccountTypeNameAndExpenseYearAndExpenseMonth(
             Long userId, String accountTypeName, Integer expenseYear, Integer expenseMonth);
+
+    List<MonthlyExpenseOverride> findByIncomeAmountIsNull();
+
+    @Query("SELECT DISTINCT m.expenseYear FROM MonthlyExpenseOverride m WHERE m.userId = :userId")
+    List<Integer> findDistinctYearsByUserId(@Param("userId") Long userId);
 }

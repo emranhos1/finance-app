@@ -8,8 +8,6 @@
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       spacing="10" style="-fx-padding: 15;">
 
-    <Label text="Transaction" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
-
     <TabPane fx:id="mainTabPane" VBox.vgrow="ALWAYS">
 
         <Tab text="Transaction" closable="false">

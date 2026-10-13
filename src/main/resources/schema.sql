@@ -163,6 +163,21 @@ PREPARE stmt FROM @alter_stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- income_amount is the month's total Bank + Cash income, stored on both the CASH and BANK rows of
+-- that month (same figure on both) - the base for the dashboard's expense % of income. NULL means
+-- not filled yet (the startup backfill fills it from transactions).
+SET @col_exists = (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'monthly_expense_overrides' AND COLUMN_NAME = 'income_amount'
+);
+SET @alter_stmt = IF(@col_exists = 0,
+    'ALTER TABLE monthly_expense_overrides ADD COLUMN income_amount DECIMAL(15, 2) NULL, ADD COLUMN is_income_manual BOOLEAN NOT NULL DEFAULT FALSE',
+    'SELECT 1'
+);
+PREPARE stmt FROM @alter_stmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS loans (
                                      id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                      user_id BIGINT NOT NULL,
