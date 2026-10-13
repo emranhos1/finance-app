@@ -25,7 +25,8 @@
             <Button fx:id="updateButton" text="Update now" styleClass="btn-primary" onAction="#handleUpdate"/>
             <Hyperlink text="What's new?" onAction="#handleShowReleaseNotes"/>
         </HBox>
-        <ProgressBar fx:id="updateProgress" maxWidth="Infinity" visible="false" managed="false"/>
+        <!-- fixed height: the login window is not resizable, so without it the bar gets squeezed to a thin line -->
+        <ProgressBar fx:id="updateProgress" maxWidth="Infinity" minHeight="14" prefHeight="14" visible="false" managed="false"/>
     </VBox>
 
     <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
