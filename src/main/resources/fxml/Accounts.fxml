@@ -7,8 +7,6 @@
       fx:controller="com.finance.controller.AccountsController"
       spacing="10" styleClass="content-pane">
 
-    <Label text="Manage Accounts" styleClass="page-title"/>
-
     <TabPane VBox.vgrow="ALWAYS">
 
         <!-- ===== TAB 1: Accounts ===== -->

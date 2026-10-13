@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
@@ -15,8 +16,6 @@
             fx:controller="com.finance.controller.DashboardHomeController"
             fitToWidth="true" styleClass="dash-scroll">
 <VBox styleClass="content-pane" spacing="7">
-
-    <Label text="Financial Summary" styleClass="page-title"/>
 
     <HBox fx:id="loanReminderBanner" alignment="CENTER_LEFT" spacing="8" styleClass="dash-loan-toast" visible="false" managed="false">
         <Label text="⚠" style="-fx-font-size: 14;"/>
@@ -87,29 +86,15 @@
         </VBox>
     </GridPane>
 
-    <!-- Row 3: Monthly Expense — Cash | Bank | Cash + Bank (one third each) -->
-    <GridPane hgap="12">
-        <columnConstraints>
-            <ColumnConstraints percentWidth="33.33"/>
-            <ColumnConstraints percentWidth="33.33"/>
-            <ColumnConstraints percentWidth="33.34"/>
-        </columnConstraints>
-
-        <VBox styleClass="dash-summary-card" spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="0">
-            <Label text="Monthly Expense (Cash)" styleClass="dash-section-title"/>
-            <VBox fx:id="cashMonthlyExpenseBox" spacing="1"/>
-        </VBox>
-
-        <VBox styleClass="dash-summary-card" spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
-            <Label text="Monthly Expense (Bank)" styleClass="dash-section-title"/>
-            <VBox fx:id="bankMonthlyExpenseBox" spacing="1"/>
-        </VBox>
-
-        <VBox styleClass="dash-summary-card" spacing="4" GridPane.columnIndex="2" GridPane.rowIndex="0">
-            <Label text="Monthly Expense (Cash + Bank)" styleClass="dash-section-title"/>
-            <VBox fx:id="totalMonthlyExpenseBox" spacing="1"/>
-        </VBox>
-    </GridPane>
+    <!-- Row 3: Monthly Income & Expense — one card: Month | Income | Cash | Bank | Cash + Bank | % -->
+    <VBox styleClass="dash-summary-card" spacing="4">
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <Label text="Monthly Income &amp; Expense" styleClass="dash-section-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <ComboBox fx:id="monthlyYearCombo"/>
+        </HBox>
+        <VBox fx:id="monthlyIncomeExpenseBox" spacing="1"/>
+    </VBox>
 
 </VBox>
 </ScrollPane>

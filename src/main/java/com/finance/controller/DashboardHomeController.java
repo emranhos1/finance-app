@@ -22,6 +22,7 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
@@ -62,6 +63,9 @@ public class DashboardHomeController {
 
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH);
     private static final DateTimeFormatter FULL_MONTH_FMT = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
+    // Monthly Income & Expense card: fixed month column, value columns share the rest equally
+    private static final double MONTH_COL_WIDTH = 50;
+    private static final double VALUE_COL_WIDTH = 120;
     private static final String[] BADGE_PALETTE = {"badge-teal", "badge-gold", "badge-blue", "badge-purple", "badge-rose", "badge-mint"};
 
     @FXML private HBox loanReminderBanner;
@@ -87,12 +91,22 @@ public class DashboardHomeController {
     @FXML private VBox loansBox;
     @FXML private HBox loansTotalBox;
 
-    @FXML private VBox cashMonthlyExpenseBox;
-    @FXML private VBox bankMonthlyExpenseBox;
-    @FXML private VBox totalMonthlyExpenseBox;
+    @FXML private VBox monthlyIncomeExpenseBox;
+    @FXML private ComboBox<Integer> monthlyYearCombo;
+
+    /** Year shown in the Monthly Income & Expense card - picked from monthlyYearCombo. */
+    private int selectedYear;
+    /** True while the year list is being refilled, so that doesn't count as the user picking a year. */
+    private boolean updatingYearCombo;
 
     @FXML
     public void initialize() {
+        selectedYear = LocalDate.now().getYear();
+        monthlyYearCombo.setOnAction(e -> {
+            if (updatingYearCombo || monthlyYearCombo.getValue() == null) return;
+            selectedYear = monthlyYearCombo.getValue();
+            refreshDashboard();
+        });
         refreshDashboard();
         showLoanReminderToast();
         loanReminderBanner.setCursor(javafx.scene.Cursor.HAND);
@@ -205,9 +219,56 @@ public class DashboardHomeController {
         buildRecentTransactions(userId, accounts);
         buildExpenseRing(userId, accounts, monthStart, today);
         buildTopExpense(userId, accounts, monthStart, today);
-        BigDecimal[] cashByMonth = buildMonthlyExpenseByType(cashMonthlyExpenseBox, userId, accounts, "CASH");
-        BigDecimal[] bankByMonth = buildMonthlyExpenseByType(bankMonthlyExpenseBox, userId, accounts, "BANK");
-        buildMonthlyExpenseCombined(totalMonthlyExpenseBox, cashByMonth, bankByMonth);
+        refreshYearCombo(userId);
+        MonthlyFigures income = loadMonthlyIncome(userId, accounts, selectedYear);
+        MonthlyFigures cash = loadMonthlyExpense(userId, accounts, "CASH", selectedYear);
+        MonthlyFigures bank = loadMonthlyExpense(userId, accounts, "BANK", selectedYear);
+        buildMonthlyIncomeExpenseTable(monthlyIncomeExpenseBox, income, cash, bank, userId, accounts, selectedYear);
+    }
+
+    /** Refills the year dropdown (current year + every year with saved figures) and keeps
+     *  selectedYear selected. */
+    private void refreshYearCombo(Long userId) {
+        List<Integer> years = monthlyExpenseOverrideService.getAvailableYears(userId);
+        if (!years.contains(selectedYear)) selectedYear = LocalDate.now().getYear();
+        updatingYearCombo = true;
+        try {
+            monthlyYearCombo.getItems().setAll(years);
+            monthlyYearCombo.setValue(selectedYear);
+        } finally {
+            updatingYearCombo = false;
+        }
+    }
+
+    /** Each month's total Bank + Cash income of the given year (index 0 = Jan), the base for the
+     *  expense %. Same rules as the expense figures: the current month of the current year is
+     *  recalculated from its transactions and auto-saved unless its income was saved manually; every
+     *  other month shows the income saved in monthly_expense_overrides (0 if none). */
+    private MonthlyFigures loadMonthlyIncome(Long userId, List<Account> accounts, int year) {
+        LocalDate today = LocalDate.now();
+        int currentMonth = year == today.getYear() ? today.getMonthValue() : -1;
+        Map<Integer, MonthlyExpenseOverride> records = monthlyExpenseOverrideService.getIncomeRecordsForYear(userId, year);
+
+        MonthlyFigures income = new MonthlyFigures();
+        for (int month = 1; month <= 12; month++) {
+            MonthlyExpenseOverride existing = records.get(month);
+            boolean isManual = existing != null && Boolean.TRUE.equals(existing.getIsIncomeManual());
+            if (month == currentMonth && !isManual) {
+                BigDecimal calculated = monthlyExpenseOverrideService.calculateIncome(userId, accounts, YearMonth.of(year, month));
+                monthlyExpenseOverrideService.autoSaveIncome(userId, year, month, calculated);
+                income.amounts[month - 1] = calculated;
+            } else {
+                income.amounts[month - 1] = existing != null ? existing.getIncomeAmount() : BigDecimal.ZERO;
+            }
+            income.manual[month - 1] = isManual;
+        }
+        return income;
+    }
+
+    /** 12 monthly figures of the current year (index 0 = Jan) and whether each was saved manually. */
+    private static final class MonthlyFigures {
+        final BigDecimal[] amounts = new BigDecimal[12];
+        final boolean[] manual = new boolean[12];
     }
 
     private void buildBalanceCards(Long userId) {
@@ -448,129 +509,226 @@ public class DashboardHomeController {
     }
 
     /**
-     * Shows the current year's Jan-Dec expense total for every account of the given account type
-     * (e.g. "CASH" or "BANK"), read from the {@code monthly_expense_overrides} table, plus a
-     * Total and a 12-month Average row.
+     * Each month's expense paid from accounts of the given type ("CASH" or "BANK") in the given
+     * year (index 0 = Jan), read from the {@code monthly_expense_overrides} table.
      * <p>
      * Behavior:
-     * - The CURRENT month is recalculated live from EXPENSE transactions (paid from an account of
+     * - The CURRENT month (only when the current year is shown) is recalculated live from EXPENSE transactions (paid from an account of
      *   this type) every time the dashboard loads, and that figure is auto-saved into the table -
      *   unless the user has manually corrected this month's figure, in which case the manual
      *   value wins and is left untouched.
      * - Every OTHER month (past or future) is never recalculated - it simply shows whatever is
      *   saved in the table (0 if nothing was ever saved for it). This is what makes a month
      *   "freeze" once it's no longer current: only a manual ✎ edit can change it after that.
-     * Returns the 12 figures shown (index 0 = Jan) so the Cash + Bank card can add them up.
      */
-    private BigDecimal[] buildMonthlyExpenseByType(VBox container, Long userId, List<Account> accounts, String typeName) {
-        container.getChildren().clear();
-        BigDecimal[] byMonth = new BigDecimal[12];
-
+    private MonthlyFigures loadMonthlyExpense(Long userId, List<Account> accounts, String typeName, int year) {
         LocalDate today = LocalDate.now();
-        int year = today.getYear();
-        int currentMonth = today.getMonthValue();
+        int currentMonth = year == today.getYear() ? today.getMonthValue() : -1;
+        Map<Integer, MonthlyExpenseOverride> records = monthlyExpenseOverrideService.getRecordsForYear(userId, typeName, year);
 
-        Map<Integer, MonthlyExpenseOverride> records =
-                monthlyExpenseOverrideService.getRecordsForYear(userId, typeName, year);
-
-        BigDecimal total = BigDecimal.ZERO;
+        MonthlyFigures expense = new MonthlyFigures();
         for (int month = 1; month <= 12; month++) {
             YearMonth ym = YearMonth.of(year, month);
             MonthlyExpenseOverride existing = records.get(month);
-            BigDecimal amount;
             boolean isManual = existing != null && Boolean.TRUE.equals(existing.getIsManual());
-
             if (month == currentMonth && !isManual) {
                 BigDecimal calculated = transactionService.getEffectiveExpense(userId, accounts, typeName, ym.atDay(1), ym.atEndOfMonth());
                 monthlyExpenseOverrideService.autoSaveCurrentMonth(userId, typeName, year, month, calculated);
-                amount = calculated;
+                expense.amounts[month - 1] = calculated;
             } else {
-                amount = existing != null ? existing.getAmount() : BigDecimal.ZERO;
+                expense.amounts[month - 1] = existing != null ? existing.getAmount() : BigDecimal.ZERO;
             }
-
-            total = total.add(amount);
-            byMonth[month - 1] = amount;
-            container.getChildren().add(buildMonthlyExpenseRow(ym, typeName, amount, isManual, userId, accounts));
+            expense.manual[month - 1] = isManual;
         }
-
-        BigDecimal avg = total.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
-        container.getChildren().add(buildSummaryRow("Total", fmt(total), "dash-monthly-row-total"));
-        container.getChildren().add(buildSummaryRow("AVG", fmt(avg), "dash-monthly-row-avg"));
-        return byMonth;
+        return expense;
     }
 
-    /** Cash + Bank per month: the sum of the two cards' shown figures (manual ✎ values included),
-     *  so it always agrees with them. Read-only - corrections are made in the Cash/Bank cards. */
-    private void buildMonthlyExpenseCombined(VBox container, BigDecimal[] cashByMonth, BigDecimal[] bankByMonth) {
+    /**
+     * The Monthly Income & Expense card: one row per month of the current year with the columns
+     * Month | Income | Cash Expense | Bank Expense | Cash + Bank Expense | %, then Total and AVG.
+     * Income, Cash and Bank each have their own ↻ (recalculate from transactions - auto values only)
+     * and ✎ (save manually). Cash + Bank is the sum of the shown Cash and Bank figures, and
+     * % = (Cash + Bank) ÷ Income × 100.
+     */
+    private void buildMonthlyIncomeExpenseTable(VBox container, MonthlyFigures income, MonthlyFigures cash,
+                                                MonthlyFigures bank, Long userId, List<Account> accounts, int year) {
         container.getChildren().clear();
-        int year = LocalDate.now().getYear();
-        BigDecimal total = BigDecimal.ZERO;
+        container.getChildren().add(buildMonthlyColumnsRow(
+                monthCell("Month", "dash-table-head"),
+                cell(styledLabel("Income (Bank + Cash)", "dash-table-head"), true),
+                cell(styledLabel("Cash Expense", "dash-table-head"), true),
+                cell(styledLabel("Bank Expense", "dash-table-head"), true),
+                cell(styledLabel("Cash + Bank Expense", "dash-table-head"), false),
+                cell(styledLabel("%", "dash-table-head"), false),
+                "dash-monthly-row"));
+
+        BigDecimal[] combined = new BigDecimal[12];
         for (int month = 1; month <= 12; month++) {
-            BigDecimal amount = cashByMonth[month - 1].add(bankByMonth[month - 1]);
-            total = total.add(amount);
+            YearMonth ym = YearMonth.of(year, month);
+            int i = month - 1;
+            BigDecimal monthIncome = income.amounts[i];
+            BigDecimal cashAmount = cash.amounts[i];
+            BigDecimal bankAmount = bank.amounts[i];
+            combined[i] = cashAmount.add(bankAmount);
 
-            Label nameLabel = new Label(YearMonth.of(year, month).format(MONTH_FMT).toUpperCase(Locale.ENGLISH));
-            nameLabel.getStyleClass().add("dash-card-label");
-            nameLabel.setPrefWidth(40);
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            Label valueLabel = new Label(fmt(amount));
-            valueLabel.getStyleClass().add("dash-card-label");
-            // invisible, zero-width stand-in for the ✎ button: keeps the row as tall as the
-            // Cash/Bank rows (so all three cards line up) without leaving a gap after the amount
-            Button placeholder = new Button("✎");
-            placeholder.getStyleClass().add("dash-monthly-edit-btn");
-            placeholder.setVisible(false);
-            placeholder.setMinWidth(0);
-            placeholder.setPrefWidth(0);
-            placeholder.setMaxWidth(0);
-
-            HBox row = new HBox(0, nameLabel, spacer, valueLabel, placeholder);
-            row.getStyleClass().add("dash-monthly-row");
-            row.setAlignment(Pos.CENTER_LEFT);
-            container.getChildren().add(row);
+            container.getChildren().add(buildMonthlyColumnsRow(
+                    monthCell(ym.format(MONTH_FMT).toUpperCase(Locale.ENGLISH), "dash-card-label"),
+                    editableCell(monthIncome, income.manual[i], "total income",
+                            () -> handleRecalculateIncome(ym, monthIncome, userId, accounts),
+                            () -> handleEditMonthlyIncome(ym, monthIncome, userId)),
+                    editableCell(cashAmount, cash.manual[i], "CASH expense",
+                            () -> handleRecalculateMonth(ym, "CASH", cashAmount, userId, accounts),
+                            () -> handleEditMonthlyExpense(ym, "CASH", cashAmount, userId)),
+                    editableCell(bankAmount, bank.manual[i], "BANK expense",
+                            () -> handleRecalculateMonth(ym, "BANK", bankAmount, userId, accounts),
+                            () -> handleEditMonthlyExpense(ym, "BANK", bankAmount, userId)),
+                    cell(styledLabel(fmt(combined[i]), "dash-card-label"), false),
+                    cell(buildPctLabel(combined[i], monthIncome), false),
+                    "dash-monthly-row"));
         }
 
-        BigDecimal avg = total.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
-        container.getChildren().add(buildSummaryRow("Total", fmt(total), "dash-monthly-row-total"));
-        container.getChildren().add(buildSummaryRow("AVG", fmt(avg), "dash-monthly-row-avg"));
+        BigDecimal totalIncome = sum(income.amounts);
+        BigDecimal totalCash = sum(cash.amounts);
+        BigDecimal totalBank = sum(bank.amounts);
+        BigDecimal totalCombined = sum(combined);
+        container.getChildren().add(buildMonthlySummaryRow("Total", totalIncome, totalCash, totalBank, totalCombined,
+                buildPctLabel(totalCombined, totalIncome), "dash-monthly-row-total"));
+        container.getChildren().add(buildMonthlySummaryRow("AVG", avg(totalIncome), avg(totalCash), avg(totalBank),
+                avg(totalCombined), null, "dash-monthly-row-avg"));
     }
 
-    private HBox buildMonthlyExpenseRow(YearMonth ym, String typeName, BigDecimal amount, boolean isSaved, Long userId,
-                                        List<Account> accounts) {
-        Label nameLabel = new Label(ym.format(MONTH_FMT).toUpperCase(Locale.ENGLISH));
-        nameLabel.getStyleClass().add("dash-card-label");
-        nameLabel.setPrefWidth(40);
+    /** Total / AVG row. pctLabel is null for AVG (its % would just repeat Total's). */
+    private HBox buildMonthlySummaryRow(String label, BigDecimal income, BigDecimal cash, BigDecimal bank,
+                                        BigDecimal combined, Label pctLabel, String rowStyleClass) {
+        return buildMonthlyColumnsRow(
+                monthCell(label, "dash-card-title"),
+                cell(styledLabel(fmt(income), "dash-card-title"), true),
+                cell(styledLabel(fmt(cash), "dash-card-title"), true),
+                cell(styledLabel(fmt(bank), "dash-card-title"), true),
+                cell(styledLabel(fmt(combined), "dash-card-title"), false),
+                cell(pctLabel != null ? pctLabel : new Label(""), false),
+                rowStyleClass);
+    }
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+    /** One line of the card. The five value cells share the same preferred width and all grow
+     *  equally, so header, month and Total/AVG rows line up column by column. */
+    private HBox buildMonthlyColumnsRow(Label month, HBox income, HBox cash, HBox bank, HBox combined, HBox pct,
+                                        String rowStyleClass) {
+        HBox row = new HBox(12, month, income, cash, bank, combined, pct);
+        row.getStyleClass().add(rowStyleClass);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
 
-        Label valueLabel = new Label(fmt(amount));
-        valueLabel.getStyleClass().add(isSaved ? "dash-monthly-value-saved" : "dash-card-label");
-        if (isSaved) {
+    /** An amount with its ↻ and ✎ buttons. ↻ only for auto-calculated figures; a manually saved one
+     *  keeps an invisible stand-in so the ✎ column stays aligned. */
+    private HBox editableCell(BigDecimal amount, boolean manual, String what, Runnable onRecalculate, Runnable onEdit) {
+        Label valueLabel = styledLabel(fmt(amount), manual ? "dash-monthly-value-saved" : "dash-card-label");
+        if (manual) {
             Tooltip.install(valueLabel, new Tooltip("Manually saved value — overrides the calculated total"));
+        }
+
+        Button recalcBtn = new Button("↻");
+        recalcBtn.getStyleClass().add("dash-monthly-edit-btn");
+        if (manual) {
+            recalcBtn.setVisible(false);
+        } else {
+            Tooltip.install(recalcBtn, new Tooltip("Recalculate this month's " + what + " from its transactions"));
+            recalcBtn.setOnAction(e -> onRecalculate.run());
         }
 
         Button editBtn = new Button("✎");
         editBtn.getStyleClass().add("dash-monthly-edit-btn");
-        Tooltip.install(editBtn, new Tooltip("Manually save this month's actual " + typeName + " expense"));
-        editBtn.setOnAction(e -> handleEditMonthlyExpense(ym, typeName, amount, userId));
+        Tooltip.install(editBtn, new Tooltip("Manually save this month's actual " + what));
+        editBtn.setOnAction(e -> onEdit.run());
 
-        // ↻ only for auto-calculated months; manually saved ones keep an invisible stand-in so
-        // the ✎ column stays aligned
-        Button recalcBtn = new Button("↻");
-        recalcBtn.getStyleClass().add("dash-monthly-edit-btn");
-        if (isSaved) {
-            recalcBtn.setVisible(false);
-        } else {
-            Tooltip.install(recalcBtn, new Tooltip("Recalculate this month's " + typeName + " expense from its transactions"));
-            recalcBtn.setOnAction(e -> handleRecalculateMonth(ym, typeName, amount, userId, accounts));
+        return cell(valueLabel, recalcBtn, editBtn);
+    }
+
+    /** A right-aligned value cell; buttonSpace adds invisible ↻ ✎ stand-ins so it lines up with
+     *  the editable cells of the same column. */
+    private HBox cell(Label label, boolean buttonSpace) {
+        return buttonSpace ? cell(label, hiddenButton("↻"), hiddenButton("✎")) : cell(label, null, null);
+    }
+
+    private HBox cell(Label label, Button recalcBtn, Button editBtn) {
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(label, Priority.ALWAYS);
+        HBox cell = new HBox(4, label);
+        if (recalcBtn != null) cell.getChildren().addAll(recalcBtn, editBtn);
+        cell.setAlignment(Pos.CENTER_RIGHT);
+        cell.setPrefWidth(VALUE_COL_WIDTH);
+        cell.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(cell, Priority.ALWAYS);
+        return cell;
+    }
+
+    private Label monthCell(String text, String styleClass) {
+        Label label = styledLabel(text, styleClass);
+        label.setMinWidth(Region.USE_PREF_SIZE);
+        label.setPrefWidth(MONTH_COL_WIDTH);
+        return label;
+    }
+
+    private Label styledLabel(String text, String styleClass) {
+        Label label = new Label(text);
+        label.getStyleClass().add(styleClass);
+        return label;
+    }
+
+    /** Invisible stand-in that keeps a ↻/✎ button's width so columns stay aligned. */
+    private Button hiddenButton(String text) {
+        Button button = new Button(text);
+        button.getStyleClass().add("dash-monthly-edit-btn");
+        button.setVisible(false);
+        return button;
+    }
+
+    /** Shows old vs recalculated income and saves only if the user confirms. */
+    private void handleRecalculateIncome(YearMonth ym, BigDecimal currentAmount, Long userId, List<Account> accounts) {
+        BigDecimal recalculated = monthlyExpenseOverrideService.calculateIncome(userId, accounts, ym);
+        if (recalculated.compareTo(currentAmount) == 0) {
+            Alert info = new Alert(Alert.AlertType.INFORMATION,
+                    ym.format(FULL_MONTH_FMT) + " — income is already up to date (" + fmt(currentAmount) + ").");
+            info.setTitle("Recalculate");
+            info.setHeaderText(null);
+            info.showAndWait();
+            return;
         }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                ym.format(FULL_MONTH_FMT) + " — total income\n\n"
+                        + "Saved now:      " + fmt(currentAmount) + "\n"
+                        + "Recalculated:  " + fmt(recalculated) + "\n\nUpdate to the recalculated figure?");
+        confirm.setTitle("Recalculate");
+        confirm.setHeaderText(null);
+        confirm.showAndWait().ifPresent(btn -> {
+            if (btn != ButtonType.OK) return;
+            monthlyExpenseOverrideService.recalculateIncome(userId, accounts, ym.getYear(), ym.getMonthValue());
+            refreshDashboard();
+        });
+    }
 
-        HBox row = new HBox(6, nameLabel, spacer, valueLabel, recalcBtn, editBtn);
-        row.getStyleClass().add("dash-monthly-row");
-        row.setAlignment(Pos.CENTER_LEFT);
-        return row;
+    private void handleEditMonthlyIncome(YearMonth ym, BigDecimal currentAmount, Long userId) {
+        TextInputDialog dialog = new TextInputDialog(currentAmount.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        dialog.setTitle("Save month's actual income");
+        dialog.setHeaderText(null);
+        dialog.setContentText(ym.format(FULL_MONTH_FMT) + " — total income (৳):");
+        dialog.showAndWait().ifPresent(input -> {
+            BigDecimal parsed;
+            try {
+                parsed = new BigDecimal(input.trim());
+            } catch (NumberFormatException ex) {
+                showValidationError("Please enter a valid amount (e.g. 85000 or 85000.00).");
+                return;
+            }
+            if (parsed.compareTo(BigDecimal.ZERO) < 0) {
+                showValidationError("Amount cannot be negative.");
+                return;
+            }
+            monthlyExpenseOverrideService.saveManualIncome(userId, ym.getYear(), ym.getMonthValue(), parsed);
+            refreshDashboard();
+        });
     }
 
     /** Shows old vs recalculated figure and saves only if the user confirms. */
@@ -626,20 +784,27 @@ public class DashboardHomeController {
         alert.showAndWait();
     }
 
-    private HBox buildSummaryRow(String label, String value, String rowStyleClass) {
-        Label nameLabel = new Label(label);
-        nameLabel.getStyleClass().add("dash-card-title");
+    /** Expense as % of income, e.g. "57.66%" or "119.00%" (not capped at 100). "-" when there was
+     *  no income, since a % of zero is meaningless. Shown in red once expense exceeds income. */
+    private Label buildPctLabel(BigDecimal expense, BigDecimal income) {
+        boolean hasIncome = income != null && income.compareTo(BigDecimal.ZERO) > 0;
+        String text = hasIncome
+                ? expense.multiply(BigDecimal.valueOf(100)).divide(income, 2, RoundingMode.HALF_UP).toPlainString() + "%"
+                : "-";
+        Label label = styledLabel(text, "dash-monthly-pct");
+        if (hasIncome && expense.compareTo(income) > 0) label.getStyleClass().add("dash-monthly-pct-over");
+        return label;
+    }
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+    private BigDecimal sum(BigDecimal[] values) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (BigDecimal v : values) total = total.add(v);
+        return total;
+    }
 
-        Label valueLabel = new Label(value);
-        valueLabel.getStyleClass().add("dash-card-title");
-
-        HBox row = new HBox(nameLabel, spacer, valueLabel);
-        row.getStyleClass().add(rowStyleClass);
-        row.setAlignment(Pos.CENTER_LEFT);
-        return row;
+    /** 12-month average of a yearly total. */
+    private BigDecimal avg(BigDecimal yearTotal) {
+        return yearTotal.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
     }
 
     private String initials(String name) {
