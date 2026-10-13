@@ -17,7 +17,10 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.geometry.Insets;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Screen;
@@ -31,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.prefs.Preferences;
 
 @Controller
 @RequiredArgsConstructor
@@ -104,17 +108,50 @@ public class LoginController {
         }
     }
 
+    /** Release notes hold an English part, then a Bangla part after this marker (see release-notes/README.md). */
+    private static final String BANGLA_MARKER = "<!-- bn -->";
+    private static final String NOTES_LANG_KEY = "releaseNotesLanguage";
+
     @FXML
     public void handleShowReleaseNotes() {
         if (availableUpdate == null) return;
-        TextArea notes = new TextArea(availableUpdate.getNotes());
+        String body = availableUpdate.getNotes() == null ? "" : availableUpdate.getNotes();
+        int marker = body.indexOf(BANGLA_MARKER);
+
+        TextArea notes = new TextArea();
         notes.setEditable(false);
         notes.setWrapText(true);
         notes.setPrefSize(520, 360);
+        VBox content = new VBox(10);
+
+        if (marker < 0) {
+            // older releases were written in one language only - show them as they are
+            notes.setText(body.trim());
+        } else {
+            String english = body.substring(0, marker).trim();
+            String bangla = body.substring(marker + BANGLA_MARKER.length()).trim();
+            ToggleGroup group = new ToggleGroup();
+            ToggleButton englishBtn = new ToggleButton("English");
+            ToggleButton banglaBtn = new ToggleButton("বাংলা");
+            englishBtn.setToggleGroup(group);
+            banglaBtn.setToggleGroup(group);
+            Preferences prefs = Preferences.userNodeForPackage(LoginController.class);
+            group.selectedToggleProperty().addListener((obs, old, selected) -> {
+                if (selected == null) { old.setSelected(true); return; } // keep one language always selected
+                boolean bn = selected == banglaBtn;
+                notes.setText(bn ? bangla : english);
+                prefs.put(NOTES_LANG_KEY, bn ? "bn" : "en");
+            });
+            // remember the language the user picked last time
+            (("bn".equals(prefs.get(NOTES_LANG_KEY, "en"))) ? banglaBtn : englishBtn).setSelected(true);
+            content.getChildren().add(new HBox(6, englishBtn, banglaBtn));
+        }
+        content.getChildren().add(notes);
+
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("What's new in " + availableUpdate.getVersion());
         alert.setHeaderText(null);
-        alert.getDialogPane().setContent(notes);
+        alert.getDialogPane().setContent(content);
         alert.showAndWait();
     }
 

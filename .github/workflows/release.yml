@@ -34,6 +34,8 @@ jobs:
             "release=false" >> $env:GITHUB_OUTPUT
           } else {
             if (-not (Test-Path "release-notes/v$version.md")) { throw "Missing release-notes/v$version.md for new version $version" }
+            # English part first, then the Bangla part after this marker - the app's "What's new?" splits on it
+            if (-not (Select-String -Path "release-notes/v$version.md" -SimpleMatch "<!-- bn -->" -Quiet)) { throw "release-notes/v$version.md needs an English part, then '<!-- bn -->', then a Bangla part" }
             "release=true" >> $env:GITHUB_OUTPUT
           }
 
