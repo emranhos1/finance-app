@@ -63,5 +63,11 @@ public class DatabaseInitializationService {
         } catch (Exception e) {
             log.error("Monthly expense backfill failed - dashboard will still work, only historical months may show 0 until manually corrected", e);
         }
+
+        try {
+            monthlyExpenseOverrideService.backfillIncome();
+        } catch (Exception e) {
+            log.error("Monthly income backfill failed - dashboard will still work, only historical months may show no income until manually corrected", e);
+        }
     }
 }

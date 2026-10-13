@@ -332,6 +332,14 @@
     -fx-font-weight: bold;
     -fx-text-fill: #1D5FA8;
 }
+.dash-monthly-pct {
+    -fx-font-size: 10;
+    -fx-text-fill: #8AA69C;
+}
+.dash-monthly-pct-over {
+    -fx-text-fill: #C0392B;
+    -fx-font-weight: bold;
+}
 .dash-monthly-edit-btn {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
