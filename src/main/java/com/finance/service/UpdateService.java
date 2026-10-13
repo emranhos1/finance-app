@@ -100,9 +100,16 @@ public class UpdateService {
     }
 
     /** Downloads the update installer into the folder the user picked, verifying its SHA-256 when
-     *  the release has one. */
+     *  the release has one. If that folder already holds this version's installer intact (e.g. the
+     *  wizard was cancelled last time), it is reused instead of downloaded again. */
     public Path downloadInstaller(ReleaseInfo release, Path folder, DoubleConsumer progress) throws IOException, InterruptedException {
         Path target = folder.resolve(UPDATE_ASSET_PREFIX + release.getVersion() + ".exe");
+        String expected = release.getChecksumUrl() != null ? fetchExpectedChecksum(release) : null;
+        if (expected != null && Files.isRegularFile(target) && expected.equalsIgnoreCase(sha256Of(target))) {
+            progress.accept(1.0);
+            return target;
+        }
+
         HttpRequest request = HttpRequest.newBuilder(URI.create(release.getInstallerUrl())).GET().build();
         HttpResponse<InputStream> response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() != 200) throw new IOException("Download failed (HTTP " + response.statusCode() + ")");
@@ -121,16 +128,26 @@ public class UpdateService {
             }
         }
 
-        if (release.getChecksumUrl() != null) {
-            HttpRequest sumRequest = HttpRequest.newBuilder(URI.create(release.getChecksumUrl())).GET().build();
-            String expected = http.send(sumRequest, HttpResponse.BodyHandlers.ofString()).body().trim().split("\\s+")[0];
-            String actual = toHex(sha256.digest());
-            if (!expected.equalsIgnoreCase(actual)) {
-                Files.deleteIfExists(target);
-                throw new IOException("Downloaded file is corrupted (checksum mismatch) - please try again.");
-            }
+        if (expected != null && !expected.equalsIgnoreCase(toHex(sha256.digest()))) {
+            Files.deleteIfExists(target);
+            throw new IOException("Downloaded file is corrupted (checksum mismatch) - please try again.");
         }
         return target;
+    }
+
+    private String fetchExpectedChecksum(ReleaseInfo release) throws IOException, InterruptedException {
+        HttpRequest sumRequest = HttpRequest.newBuilder(URI.create(release.getChecksumUrl())).GET().build();
+        HttpResponse<String> response = http.send(sumRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) throw new IOException("Could not read the update's checksum (HTTP " + response.statusCode() + ")");
+        return response.body().trim().split("\\s+")[0];
+    }
+
+    private static String sha256Of(Path file) throws IOException {
+        MessageDigest digest = sha256();
+        try (InputStream in = new DigestInputStream(Files.newInputStream(file), digest)) {
+            in.transferTo(java.io.OutputStream.nullOutputStream());
+        }
+        return toHex(digest.digest());
     }
 
     /** Opens the installer's normal wizard, which asks where to install (pre-filled with the
