@@ -102,10 +102,23 @@ public class LoginController {
             double width = scene.getWidth() - pad.getLeft() - pad.getRight();
             double bannerHeight = updateBanner.prefHeight(width);
             double spacing = updateBanner.getParent() instanceof VBox ? ((VBox) updateBanner.getParent()).getSpacing() : 0;
-            // never grow past the visible screen height, whatever the measurement says
-            double maxHeight = Screen.getPrimary().getVisualBounds().getHeight();
-            window.setHeight(Math.min(window.getHeight() + bannerHeight + spacing, maxHeight));
+            growWindow(bannerHeight + spacing);
         }
+    }
+
+    /** Height the progress bar adds to the banner once shown: its own height plus the banner's spacing. */
+    private double progressBarSpace() {
+        return updateProgress.prefHeight(-1) + updateBanner.getSpacing();
+    }
+
+    /** Grows (or, with a negative value, shrinks) the fixed-size login window so newly shown content
+     *  isn't squeezed - never past the visible screen height, whatever the measurement says. */
+    private void growWindow(double extraHeight) {
+        Scene scene = updateBanner.getScene();
+        Window window = scene != null ? scene.getWindow() : null;
+        if (window == null) return;
+        double maxHeight = Screen.getPrimary().getVisualBounds().getHeight();
+        window.setHeight(Math.min(window.getHeight() + extraHeight, maxHeight));
     }
 
     /** Release notes hold an English part, then a Bangla part after this marker (see release-notes/README.md). */
@@ -181,11 +194,17 @@ public class LoginController {
         updateProgress.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
         updateProgress.setVisible(true);
         updateProgress.setManaged(true);
+        // the banner only made room for itself when it appeared - make room for the bar too
+        growWindow(progressBarSpace());
 
         Thread worker = new Thread(() -> {
             try {
                 Path installer = updateService.downloadInstaller(release, folder.toPath(),
-                        p -> Platform.runLater(() -> updateProgress.setProgress(p)));
+                        p -> Platform.runLater(() -> {
+                            updateProgress.setProgress(p);
+                            // floor, so it never says 100% while the last bytes are still coming
+                            updateButton.setText("Downloading... " + (int) Math.floor(p * 100) + "%");
+                        }));
                 updateService.deleteOldDownloads(installer);
                 updateService.launchInstaller(installer);
                 Platform.runLater(() -> {
@@ -198,6 +217,7 @@ public class LoginController {
                     updateButton.setText("Update now");
                     updateProgress.setVisible(false);
                     updateProgress.setManaged(false);
+                    growWindow(-progressBarSpace());
                     showAlert("Update failed", "Could not update: " + e.getMessage()
                             + "\nCheck the internet connection and try again.");
                 });
