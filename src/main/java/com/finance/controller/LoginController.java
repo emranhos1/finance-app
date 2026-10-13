@@ -186,6 +186,7 @@ public class LoginController {
             try {
                 Path installer = updateService.downloadInstaller(release, folder.toPath(),
                         p -> Platform.runLater(() -> updateProgress.setProgress(p)));
+                updateService.deleteOldDownloads(installer);
                 updateService.launchInstaller(installer);
                 Platform.runLater(() -> {
                     Platform.exit();
