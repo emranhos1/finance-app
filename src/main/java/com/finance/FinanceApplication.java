@@ -104,6 +104,10 @@ public class FinanceApplication extends Application {
         primaryStage.setTitle("Daily Finance Management System");
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
+        // showDashboard() sets a minimum size for the resizable Dashboard. Clear it here, or after a
+        // logout Windows enlarges the Login window to that minimum when it is restored from the taskbar.
+        primaryStage.setMinWidth(0);
+        primaryStage.setMinHeight(0);
         // A Stage does NOT auto-resize to a new Scene's dimensions once it has already been shown
         // once with an explicit size - it keeps whatever width/height it last had (e.g. still the
         // Dashboard's size here) unless told to resize explicitly.
