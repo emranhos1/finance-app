@@ -13,6 +13,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -22,13 +23,16 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -187,6 +191,12 @@ public class DashboardController {
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.initStyle(StageStyle.UNDECORATED);
         dialog.getDialogPane().getButtonTypes().clear();
+        // A Dialog refuses dialog.close() unless it has a cancel-type button, so the Cancel button
+        // below did nothing. Add one and hide it - the popup's own buttons do the closing.
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+        Node hiddenCancel = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        hiddenCancel.setVisible(false);
+        hiddenCancel.setManaged(false);
         dialog.getDialogPane().setStyle("-fx-background-color: transparent;");
         if (getClass().getResource("/css/main.css") != null) {
             dialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
@@ -224,7 +234,7 @@ public class DashboardController {
         });
         noBtn.setOnAction(e -> closeDialogThenLogout(dialog));
 
-        content.getChildren().setAll(label, new HBox(10, yesBtn, noBtn));
+        showStep(dialog, content, label, new HBox(10, yesBtn, noBtn, cancelButton(dialog)));
     }
 
     private void showNeedsConnect(Dialog<Void> dialog, VBox content) {
@@ -239,7 +249,7 @@ public class DashboardController {
         connectBtn.setOnAction(e -> showConnecting(dialog, content));
         skipBtn.setOnAction(e -> closeDialogThenLogout(dialog));
 
-        content.getChildren().setAll(label, new HBox(10, connectBtn, skipBtn));
+        showStep(dialog, content, label, new HBox(10, connectBtn, skipBtn), cancelButton(dialog));
     }
 
     private void showConnecting(Dialog<Void> dialog, VBox content) {
@@ -247,7 +257,7 @@ public class DashboardController {
         AtomicInteger remaining = new AtomicInteger(timeoutSeconds);
         Label statusLabel = new Label("Waiting for Google sign-in in your browser... " + timeoutSeconds + "s");
         statusLabel.setWrapText(true);
-        content.getChildren().setAll(new HBox(12, new ProgressIndicator(), statusLabel));
+        showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel));
 
         Timeline countdown = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             int left = remaining.decrementAndGet();
@@ -281,7 +291,7 @@ public class DashboardController {
 
     private void showBackingUp(Dialog<Void> dialog, VBox content) {
         Label statusLabel = new Label("Backing up your data...");
-        content.getChildren().setAll(new HBox(12, new ProgressIndicator(), statusLabel));
+        showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel));
 
         Task<Void> backupTask = new Task<>() {
             @Override
@@ -316,10 +326,42 @@ public class DashboardController {
         thread.start();
     }
 
+    /** Swaps the popup's content for the next step and resizes the popup to fit it. A Dialog does not
+     *  resize itself when its content changes after it was first shown, so a longer step (e.g. a
+     *  backup error) would otherwise be cut off at the bottom, with its lines overlapping. */
+    private void showStep(Dialog<Void> dialog, VBox content, Node... nodes) {
+        content.getChildren().setAll(nodes);
+        fitToContent(dialog, content);
+    }
+
+    private void fitToContent(Dialog<Void> dialog, VBox content) {
+        Window window = dialog.getDialogPane().getScene().getWindow();
+        // before the first show(), the dialog sizes and centers itself
+        if (window == null || !window.isShowing()) return;
+        dialog.getDialogPane().applyCss();
+        // A window sizes to its scene by measuring heights without a width, which measures every
+        // wrapped label as one long line - the popup came out too short and longer text was cut off.
+        // Measure the content at its real width and pin that height before sizing the window.
+        content.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        content.setPrefHeight(content.prefHeight(content.getPrefWidth()));
+        dialog.getDialogPane().layout();
+        window.sizeToScene();
+        Window owner = dialog.getOwner();
+        if (owner != null) {
+            window.setX(owner.getX() + (owner.getWidth() - window.getWidth()) / 2);
+            window.setY(owner.getY() + (owner.getHeight() - window.getHeight()) / 2);
+        }
+    }
+
     private void showFailure(Dialog<Void> dialog, VBox content, String reason, String suggestion, Runnable retryAction) {
         Label reasonLabel = new Label(reason);
         reasonLabel.setWrapText(true);
         reasonLabel.getStyleClass().add("backup-status-error");
+        // the reason is the raw mysqldump / Google message and can be very long - scroll it instead of
+        // letting it push the buttons off the popup
+        ScrollPane reasonScroll = new ScrollPane(reasonLabel);
+        reasonScroll.setFitToWidth(true);
+        reasonScroll.setStyle("-fx-background-color: transparent; -fx-background: white;");
 
         Label suggestionLabel = new Label("Suggestion: " + suggestion);
         suggestionLabel.setWrapText(true);
@@ -334,8 +376,23 @@ public class DashboardController {
         connectBtn.setOnAction(e -> showConnecting(dialog, content));
         skipBtn.setOnAction(e -> closeDialogThenLogout(dialog));
 
-        content.getChildren().setAll(reasonLabel, suggestionLabel,
-                new HBox(10, retryBtn, connectBtn), skipBtn);
+        showStep(dialog, content, reasonScroll, suggestionLabel,
+                new HBox(10, retryBtn, connectBtn), new HBox(10, skipBtn, cancelButton(dialog)));
+
+        // The scroll box would otherwise show only as many lines as an unwrapped label needs. Size it
+        // to the wrapped message (now that its font is known), up to 160px - longer text scrolls.
+        Insets in = content.getInsets();
+        double labelWidth = content.getPrefWidth() - in.getLeft() - in.getRight() - 20; // room for the scroll bar
+        reasonScroll.setPrefViewportHeight(Math.min(160, reasonLabel.prefHeight(labelWidth)));
+        fitToContent(dialog, content);
+    }
+
+    /** Closes the popup without logging out, so the user is never stuck in it (it is modal). */
+    private Button cancelButton(Dialog<Void> dialog) {
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().add("btn-secondary");
+        cancelBtn.setOnAction(e -> dialog.close());
+        return cancelBtn;
     }
 
     /** Closing this dialog and then immediately resizing/re-showing its owner Stage (which is
