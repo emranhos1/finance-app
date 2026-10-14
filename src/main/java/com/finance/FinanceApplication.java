@@ -138,6 +138,27 @@ public class FinanceApplication extends Application {
         primaryStage.setHeight(height);
         primaryStage.centerOnScreen();
         primaryStage.show();
+        // the content's height is only known once it has been laid out at the real window width
+        Platform.runLater(() -> fitDashboardHeightToContent(screenBounds));
+    }
+
+    /**
+     * Makes the Dashboard window exactly as tall as its content (so it ends right below the last
+     * card, with no empty space underneath), but never taller than the screen - on a small screen
+     * or a high Windows display scale the page then scrolls instead of being cut off.
+     */
+    private static void fitDashboardHeightToContent(Rectangle2D screenBounds) {
+        Scene scene = primaryStage.getScene();
+        if (scene == null) return;
+        Parent root = scene.getRoot();
+        root.applyCss();
+        root.layout();
+        double contentHeight = Math.ceil(root.prefHeight(scene.getWidth())) + 2; // +2: no scrollbar from rounding
+        double titleBarAndBorders = primaryStage.getHeight() - scene.getHeight();
+        double height = Math.min(contentHeight + titleBarAndBorders, screenBounds.getHeight());
+        primaryStage.setMinHeight(Math.min(primaryStage.getMinHeight(), height));
+        primaryStage.setHeight(height);
+        primaryStage.setY(screenBounds.getMinY() + (screenBounds.getHeight() - height) / 2);
     }
 
     private static void applyCSS(Scene scene) {
