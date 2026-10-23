@@ -9,7 +9,6 @@ import java.util.Optional;
 
 @Repository
 public interface LoanRepository extends JpaRepository<Loan, Long> {
-    List<Loan> findByUserIdOrderByLoanDateDesc(Long userId);
     List<Loan> findByUserIdAndStatusOrderByLoanDateDesc(Long userId, Loan.LoanStatus status);
     List<Loan> findByUserIdAndLoanPersonIdOrderByLoanDateDesc(Long userId, Long loanPersonId);
 

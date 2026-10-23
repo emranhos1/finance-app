@@ -1,13 +1,3 @@
-CREATE DATABASE IF NOT EXISTS finance_db_v2;
-USE finance_db_v2;
-
--- app_settings was briefly used to store the auto-backup checkbox in the database, but that was
--- wrong: this database gets backed up/restored across machines, so a DB-stored setting would
--- travel with a restore and show as enabled on a PC where the user never checked it. Auto-backup
--- settings now live in a local properties file per machine instead (see AutoBackupService) - drop
--- the table on any existing install that still has it (no-op on a fresh install).
-DROP TABLE IF EXISTS app_settings;
-
 CREATE TABLE IF NOT EXISTS users (
                                      id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                      username VARCHAR(50) UNIQUE NOT NULL,

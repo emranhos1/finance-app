@@ -261,11 +261,6 @@ public class TransactionService {
         return transactionRepository.findByLoanId(loanId);
     }
 
-    public Transaction getTransactionById(Long transactionId) {
-        return transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
-    }
-
     public List<Transaction> getTransactionsByUserId(Long userId) {
         return transactionRepository.findByUserIdOrderByDateDesc(userId);
     }
@@ -284,33 +279,9 @@ public class TransactionService {
         return transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
     }
 
-    public List<Transaction> getTransactionsByType(Long userId, Transaction.TransactionType type) {
-        return transactionRepository.findByUserIdAndType(userId, type);
-    }
-
-    public List<Transaction> getTransactionsByCategory(Long userId, Long categoryId) {
-        return transactionRepository.findByUserIdAndCategoryId(userId, categoryId);
-    }
-
-    public BigDecimal getTotalIncome(Long userId, LocalDate startDate, LocalDate endDate) {
-        return transactionRepository.sumIncomeByUserAndDateRange(userId, startDate, endDate);
-    }
-
-    public BigDecimal getTotalExpense(Long userId, LocalDate startDate, LocalDate endDate) {
-        return transactionRepository.sumExpenseByUserAndDateRange(userId, startDate, endDate);
-    }
-
-    public BigDecimal getExpenseByCategory(Long userId, Long categoryId, LocalDate startDate, LocalDate endDate) {
-        return transactionRepository.sumExpenseByCategory(userId, categoryId, startDate, endDate);
-    }
-
     public BigDecimal getExpenseByCategoryForAccounts(Long userId, Long categoryId, List<Long> accountIds, LocalDate startDate, LocalDate endDate) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
         return transactionRepository.sumExpenseByCategoryAndFromAccountIds(userId, categoryId, accountIds, startDate, endDate);
-    }
-
-    public BigDecimal getIncomeByCategory(Long userId, Long categoryId, LocalDate startDate, LocalDate endDate) {
-        return transactionRepository.sumIncomeByCategory(userId, categoryId, startDate, endDate);
     }
 
     public BigDecimal getExpenseByAccountIds(Long userId, List<Long> accountIds, LocalDate startDate, LocalDate endDate) {
@@ -357,9 +328,5 @@ public class TransactionService {
         if (ids == null || ids.isEmpty()) return dates;
         for (Transaction t : transactionRepository.findAllById(ids)) dates.put(t.getId(), t.getDate());
         return dates;
-    }
-
-    public BigDecimal getNetIncome(Long userId, LocalDate startDate, LocalDate endDate) {
-        return getTotalIncome(userId, startDate, endDate).subtract(getTotalExpense(userId, startDate, endDate));
     }
 }

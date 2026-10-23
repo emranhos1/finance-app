@@ -1,216 +1,110 @@
-# Daily Finance Management System
+# Daily Finance Management System (DFMS)
 
-A production-ready desktop finance application built with Java 11, Spring Boot, JavaFX, and MySQL.
+Desktop app for tracking personal finances, built with Java 21, Spring Boot 2.7, JavaFX 17 and MySQL 8.
 
 ## Features
 
-- **Account Management**: Create and manage multiple account types (Cash, Bank, DPS, FDR)
-- **Transaction Logging**: Record income and expense transactions with categories
-- **Internal Transfers**: Transfer money between accounts with double-entry bookkeeping
-- **Dashboard**: Real-time financial summary (daily, monthly, yearly)
-- **Reports**: Detailed financial reports with category breakdown and account balances
-- **User Management**: Multi-user support with role-based access control
-- **Admin Panel**: User activation/deactivation and administrative functions
-- **Security**: BCrypt password hashing, session management, and data isolation
+- **Dashboard**
+  - Balance per account type.
+  - Given/Taken loan summary and recent transactions.
+  - Expense % of income ring, top expense and expense pie chart.
+  - **Monthly Income & Expense** table with a year picker. Columns: Income (Bank + Cash), Cash Expense, Bank Expense, Cash + Bank Expense, and % = (Cash + Bank) ÷ Income × 100. Income, Cash and Bank can be corrected by hand (✎) or recalculated from transactions (↻).
+- **Accounts:** your own account types (Bank, Cash, DPS, FDR, Plot…). Every balance change is written to an account log.
+- **Transaction:**
+  - Income and expense with categories.
+  - Transfers between your own accounts, with transfer types. Transfers never count as income or expense.
+  - Loans given/taken per person, with repayments, bulk settlement and due-date reminders.
+- **Reports:** filters, category breakdown, account balances, trend chart, paged account log, CSV export.
+- **Calculator:** add up category entries over a date range.
+- **Admin Panel** (admin only):
+  - Activate or deactivate users, and set a user's security question.
+  - Local backup/restore through `mysqldump`/`mysql`, and Google Drive backup/restore.
+  - Data integrity check.
+- **Security:**
+  - Passwords and security answers are hashed with BCrypt.
+  - New users start inactive until an admin activates them.
+  - Forgot Password requires the security question.
+- **Logout backup:** on logout the app offers to back up to Google Drive (Backup Now / Skip & Logout / Cancel).
+- **Auto-update:** the login screen checks GitHub Releases. **Update now** downloads the installer (SHA-256 verified) and opens it.
 
-## Prerequisites
+## Requirements
 
-- **Java 11** or higher
-- **MySQL** running on localhost
-- **Maven 3.6** or higher
+- JDK 21
+- Maven 3.6+
+- MySQL 8 running on `localhost:3306`. The MySQL client tools (`mysqldump`, `mysql`) are needed only for backups.
 
-## Quick Start
+## Setup
 
-### 1. Database Setup
+1. Set the database login in `src/main/resources/application.properties`:
+   ```properties
+   spring.datasource.url=jdbc:mysql://localhost:3306/finance_db?createDatabaseIfNotExist=true&...
+   spring.datasource.username=root
+   spring.datasource.password=Your Password
+   admin.username=admin
+   admin.password=admin123
+   ```
+2. For Google Drive backup in a dev run, put your OAuth client file at `src/main/resources/credentials.json`. This path is git-ignored. Never commit it.
+3. Run the app:
+   ```bash
+   mvn javafx:run
+   ```
 
-Create a database named `finance_db` in MySQL:
+On every start the app does the following:
+- Creates the database if needed.
+- Runs `schema.sql`. It is idempotent: tables and columns are added only when missing.
+- Creates the admin user if it doesn't exist.
+- Back-fills monthly expense and income figures.
 
-```sql
-CREATE DATABASE finance_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-### 2. Configure Database Connection
-
-Edit `src/main/resources/application.properties`:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/finance_db
-spring.datasource.username=root
-spring.datasource.password=your_password
-
-# Admin credentials (for first-run initialization)
-admin.username=admin
-admin.password=admin123
-```
-
-### 3. Run the Application
-
-```bash
-mvn javafx:run
-```
-
-The application will:
-1. Automatically check MySQL connection
-2. Create all tables if they don't exist
-3. Create default admin user if not exists
-4. Launch the JavaFX login window
-
-### 4. Login
-
-- **Username**: `admin`
-- **Password**: `admin123`
-
-## Default Admin Credentials
-
-| Field | Value |
-|-------|-------|
-| Username | admin |
-| Password | admin123 |
-
-**Important**: Change these credentials after first login in production.
-
-## User Registration
-
-1. Click "Register" on the login screen
-2. Enter username (minimum 3 characters) and password (minimum 6 characters)
-3. New accounts are created as INACTIVE by default
-4. Admin must activate the account before user can login
-5. Activate users from the Admin Panel → User Management
-
-## Project Structure
-
-```
-finance-app/
-├── src/
-│   ├── main/
-│   │   ├── java/com/finance/
-│   │   │   ├── controller/        # JavaFX controllers
-│   │   │   ├── service/           # Business logic layer
-│   │   │   ├── repository/        # Data access layer
-│   │   │   ├── entity/            # JPA entities
-│   │   │   ├── context/           # Session context
-│   │   │   ├── config/            # Spring configuration
-│   │   │   └── FinanceApplication.java  # Entry point
-│   │   └── resources/
-│   │       ├── fxml/              # JavaFX UI layouts
-│   │       ├── application.properties  # Configuration
-│   │       └── schema.sql         # Database schema
-│   └── test/                      # Unit tests
-└── pom.xml                        # Maven configuration
-```
-
-## Database Schema
-
-### Tables
-
-- **users**: User accounts with authentication
-- **accounts**: Financial accounts (Cash, Bank, DPS, FDR)
-- **categories**: Income/Expense categories
-- **transactions**: All financial transactions
-  - Supports: Income, Expense, Transfer (with double-entry bookkeeping)
-
-## Security Features
-
-- ✅ All passwords hashed with BCrypt
-- ✅ SQL injection prevention via JPA/Hibernate
-- ✅ Session-based authentication
-- ✅ Role-based access control (Admin/User)
-- ✅ User data isolation (users see only their own data)
-- ✅ No hardcoded credentials
-- ✅ All configuration in `application.properties`
-
-## Double-Entry Bookkeeping
-
-Every transaction maintains accounting integrity:
-
-- **Income**: Increases account balance
-- **Expense**: Decreases account balance
-- **Transfer**: Debits source account, credits destination account
-
-All operations are atomic database transactions.
-
-## Features by User Role
-
-### Regular User
-- Create and manage personal accounts
-- Record income and expense transactions
-- Transfer money between own accounts
-- View personal financial reports
-- Create and manage personal categories
-
-### Admin User
-- All regular user features
-- Manage all user accounts
-- Activate/deactivate users
-- View system-wide reports
-
-## Troubleshooting
-
-### MySQL Connection Failed
-
-**Error**: "Database connection failed. Ensure MySQL is running and configured in application.properties"
-
-**Solution**:
-1. Ensure MySQL service is running: `mysqld` or `mysql.server start` (macOS)
-2. Check `application.properties` has correct host, port, username, password
-3. Create database if it doesn't exist: `CREATE DATABASE finance_db;`
-
-### Port Already in Use
-
-**Error**: "Address already in use"
-
-**Solution**: Change the JavaFX window port or close other instances of the app.
-
-### Table Already Exists
-
-This is normal. The application uses `CREATE TABLE IF NOT EXISTS` to safely handle repeated runs.
-
-## Configuration
-
-### application.properties Options
-
-| Property | Default | Description |
-|----------|---------|-------------|
-| spring.datasource.url | jdbc:mysql://localhost:3306/finance_db | MySQL connection URL |
-| spring.datasource.username | root | MySQL username |
-| spring.datasource.password | (empty) | MySQL password |
-| admin.username | admin | Default admin username |
-| admin.password | admin123 | Default admin password |
+Default login: `admin` / `admin123`. Change it after the first login.
 
 ## Development
 
-### Build
-
 ```bash
-mvn clean build
+mvn compile                 # build
+mvn test                    # TransactionService balance tests
+mvn -DskipTests package     # target/dfms.jar
+java -jar target/dfms.jar --app.version=1.0.0   # run as an older version to test the update flow
 ```
 
-### Run Tests
+## Project structure
 
-```bash
-mvn test
+```
+src/main/java/com/finance/
+  controller/   JavaFX controllers
+  service/      business logic (impl/ = backup and Google Drive)
+  repository/   Spring Data JPA
+  entity/       JPA entities
+  context/      logged-in user session
+  config/       BCrypt PasswordEncoder
+src/main/resources/
+  fxml/  css/  images/  schema.sql  application.properties
+release-notes/  one v<version>.md per release (English, <!-- bn -->, Bangla)
+installer/      Inno Setup script (dfms.iss) and icon
+.github/workflows/release.yml
 ```
 
-### Package
+## Database
 
-```bash
-mvn clean package
-```
+Main tables:
+- `users`
+- `account_types`, `accounts`, `account_logs`
+- `categories`, `transactions`, `transfer_types`
+- `loans`, `loan_persons`
+- `monthly_expense_overrides`: the saved monthly expense per account type, plus the month's income.
 
-## Technical Stack
+## Release
 
-- **Frontend**: JavaFX 20.0.1
-- **Backend**: Spring Boot 2.7.14
-- **Database**: MySQL 8.0.33
-- **ORM**: Hibernate/JPA
-- **Security**: Spring Security (BCrypt)
-- **Build**: Maven 3.11.0
-- **Java**: 11
+Steps:
+1. Bump `<version>` in `pom.xml`.
+2. Add `release-notes/v<version>.md`.
+3. Push to the `production` branch.
 
-## License
+GitHub Actions then does the following:
+- Builds the jar with JDK 21.
+- Makes an app image with its own Java runtime (`jpackage`).
+- Builds `DFMS-Update-<version>.exe` with Inno Setup.
+- Publishes the GitHub Release.
 
-This project is provided as-is for educational purposes.
+See [release-notes/README.md](release-notes/README.md) for the full steps.
 
-## Support
-
-For issues or questions, refer to the application logs in the console.
+On an installed PC, place `credentials.json` next to `DFMS.exe` once. Updates never delete it.
