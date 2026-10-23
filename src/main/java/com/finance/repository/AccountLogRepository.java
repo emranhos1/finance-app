@@ -14,10 +14,7 @@ import java.util.List;
 
 @Repository
 public interface AccountLogRepository extends JpaRepository<AccountLog, Long> {
-    List<AccountLog> findByAccountIdOrderByCreatedAtDesc(Long accountId);
     List<AccountLog> findByAccountIdOrderByIdAsc(Long accountId);
-    List<AccountLog> findByUserIdOrderByCreatedAtDesc(Long userId);
-    Page<AccountLog> findByAccountIdInOrderByCreatedAtDescIdDesc(List<Long> accountIds, Pageable pageable);
 
     /** Account Log filters on the Reports tab. Dates are always passed (callers use wide defaults
      *  when unset); a null referenceType/categoryId means "don't filter on it". Category is read

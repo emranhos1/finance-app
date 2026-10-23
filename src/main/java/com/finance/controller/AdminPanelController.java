@@ -61,7 +61,6 @@ public class AdminPanelController {
     @FXML private Label driveStatusLabel;
     @FXML private ProgressIndicator driveProgress;
 
-    @FXML private Button verifyDataBtn;
     @FXML private TextArea integrityReportArea;
 
     private interface BackgroundAction {

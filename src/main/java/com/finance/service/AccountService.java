@@ -91,14 +91,6 @@ public class AccountService {
                 .note(note).build());
     }
 
-    public List<AccountLog> getAccountLogs(Long accountId) {
-        return accountLogRepository.findByAccountIdOrderByCreatedAtDesc(accountId);
-    }
-
-    public Page<AccountLog> getAccountLogsPage(List<Long> accountIds, Pageable pageable) {
-        return accountLogRepository.findByAccountIdInOrderByCreatedAtDescIdDesc(accountIds, pageable);
-    }
-
     /** Filtered Account Log page; any filter argument may be null to mean "any". fromDate/toDate
      *  are inclusive calendar days. */
     public Page<AccountLog> searchAccountLogs(List<Long> accountIds, LocalDate fromDate, LocalDate toDate,
@@ -110,22 +102,8 @@ public class AccountService {
                 fromDay.atStartOfDay(), toDay.plusDays(1).atStartOfDay(), referenceType, categoryId, pageable);
     }
 
-    public List<AccountLog> getAllLogsByUserId(Long userId) {
-        return accountLogRepository.findByUserIdOrderByCreatedAtDesc(userId);
-    }
-
-    public BigDecimal getNetWorth(Long userId) {
-        return accountRepository.sumBalanceByUserId(userId);
-    }
-
     public BigDecimal getBalanceByAccountType(Long userId, AccountType accountType) {
         return accountRepository.sumBalanceByUserIdAndAccountType(userId, accountType);
-    }
-
-    public void updateAccountBalance(Long accountId, BigDecimal newBalance) {
-        Account account = getAccountById(accountId);
-        account.setBalance(newBalance);
-        accountRepository.save(account);
     }
 
     public void deleteAccount(Long accountId) {
