@@ -10,6 +10,7 @@ import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -38,7 +39,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Controller
@@ -51,9 +51,6 @@ public class DashboardController {
 
     @FXML
     private BorderPane mainBorderPane;
-
-    @FXML
-    private VBox sidebarVBox;
 
     @FXML
     private Button dashboardBtn;
@@ -162,21 +159,34 @@ public class DashboardController {
 
         dialog.getDialogPane().setContent(grid);
 
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == saveButtonType) {
+        // Validate and save inside the Save button's event filter: consuming the event keeps the
+        // dialog open on an error, so the user can fix the field instead of reopening and retyping.
+        boolean[] changed = {false};
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
             String newPass = newPasswordField.getText();
             if (newPass == null || newPass.isEmpty()) {
-                showAlert("Validation Error", "New password cannot be empty"); return;
+                showAlert("Validation Error", "New password cannot be empty");
+                event.consume();
+                return;
             }
             if (!newPass.equals(confirmPasswordField.getText())) {
-                showAlert("Validation Error", "New password and confirmation do not match"); return;
+                showAlert("Validation Error", "New password and confirmation do not match");
+                event.consume();
+                return;
             }
             try {
                 userService.changePassword(sessionContext.getCurrentUserId(), oldPasswordField.getText(), newPass);
-                showAlert("Success", "Password changed successfully");
+                changed[0] = true;
             } catch (Exception e) {
                 showAlert("Error", e.getMessage());
+                event.consume();
             }
+        });
+
+        dialog.showAndWait();
+        if (changed[0]) {
+            showAlert("Success", "Password changed successfully");
         }
     }
 
@@ -257,7 +267,9 @@ public class DashboardController {
         AtomicInteger remaining = new AtomicInteger(timeoutSeconds);
         Label statusLabel = new Label("Waiting for Google sign-in in your browser... " + timeoutSeconds + "s");
         statusLabel.setWrapText(true);
-        showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel));
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().add("btn-secondary");
+        showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel), cancelBtn);
 
         Timeline countdown = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             int left = remaining.decrementAndGet();
@@ -283,6 +295,13 @@ public class DashboardController {
                     "Check your internet connection and make sure you complete the sign-in in the browser tab that opened, then try again.",
                     () -> showConnecting(dialog, content));
         });
+        // stops waiting for the sign-in: the interrupt ends the sign-in attempt, which frees port 8888
+        // for the next try. A cancelled task runs neither handler above, so this never logs out.
+        cancelBtn.setOnAction(e -> {
+            countdown.stop();
+            connectTask.cancel(true);
+            dialog.close();
+        });
 
         Thread thread = new Thread(connectTask, "logout-drive-connect");
         thread.setDaemon(true);
@@ -291,7 +310,9 @@ public class DashboardController {
 
     private void showBackingUp(Dialog<Void> dialog, VBox content) {
         Label statusLabel = new Label("Backing up your data...");
-        showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel));
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().add("btn-secondary");
+        showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel), cancelBtn);
 
         Task<Void> backupTask = new Task<>() {
             @Override
@@ -300,7 +321,14 @@ public class DashboardController {
                 return null;
             }
         };
+        // cancels the backup (nothing is uploaded unless the upload had already started) and stays
+        // logged in - a cancelled task runs neither the success nor the failure handler
+        cancelBtn.setOnAction(e -> {
+            backupTask.cancel(true);
+            dialog.close();
+        });
         backupTask.setOnSucceeded(e -> {
+            cancelBtn.setDisable(true); // already done - logging out now
             statusLabel.setText("Now logging out...");
             PauseTransition pause = new PauseTransition(Duration.millis(700));
             pause.setOnFinished(ev -> closeDialogThenLogout(dialog));

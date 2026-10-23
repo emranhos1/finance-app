@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -82,11 +83,12 @@
                 <Button fx:id="disconnectDriveBtn" text="Logout Google Drive" onAction="#handleDisconnectDrive" styleClass="btn-secondary" disable="true"/>
             </HBox>
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
+            <!-- FlowPane: the buttons wrap onto a second line in a narrow card instead of cutting their text -->
+            <FlowPane hgap="10" vgap="10" alignment="CENTER_LEFT">
                 <Button fx:id="uploadDriveBtn" text="Upload to Google Drive" onAction="#handleUploadDrive" styleClass="btn-primary" disable="true"/>
                 <Button fx:id="downloadDriveBtn" text="Download &amp; Import from Google Drive" onAction="#handleDownloadDrive" styleClass="btn-secondary" disable="true"/>
                 <ProgressIndicator fx:id="driveProgress" prefWidth="22" prefHeight="22"/>
-            </HBox>
+            </FlowPane>
 
             <Label fx:id="driveStatusLabel" text="" wrapText="true"/>
         </VBox>
