@@ -21,8 +21,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByUserIdOrderByDateDesc(Long userId);
     List<Transaction> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
-    List<Transaction> findByUserIdAndType(Long userId, Transaction.TransactionType type);
-    List<Transaction> findByUserIdAndCategoryId(Long userId, Long categoryId);
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.type IN :types " +
            "AND (:categoryId IS NULL OR t.categoryId = :categoryId) " +
            "AND (:date IS NULL OR t.date = :date) " +
@@ -43,18 +41,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                          @Param("transferTypeId") Long transferTypeId,
                                          @Param("date") LocalDate date, @Param("accountId") Long accountId,
                                          Pageable pageable);
-
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'income' AND t.date BETWEEN :startDate AND :endDate" + NOT_LOAN)
-    BigDecimal sumIncomeByUserAndDateRange(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
-
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'expense' AND t.date BETWEEN :startDate AND :endDate" + NOT_LOAN)
-    BigDecimal sumExpenseByUserAndDateRange(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
-
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.categoryId = :categoryId AND t.type = 'income' AND t.date BETWEEN :startDate AND :endDate" + NOT_LOAN)
-    BigDecimal sumIncomeByCategory(@Param("userId") Long userId, @Param("categoryId") Long categoryId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
-
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.categoryId = :categoryId AND t.type = 'expense' AND t.date BETWEEN :startDate AND :endDate" + NOT_LOAN)
-    BigDecimal sumExpenseByCategory(@Param("userId") Long userId, @Param("categoryId") Long categoryId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'expense' AND t.fromAccountId IN :accountIds AND t.date BETWEEN :startDate AND :endDate" + NOT_LOAN)
     BigDecimal sumExpenseByFromAccountIdsAndDateRange(@Param("userId") Long userId, @Param("accountIds") List<Long> accountIds, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);

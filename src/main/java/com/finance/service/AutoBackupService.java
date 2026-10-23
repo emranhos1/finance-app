@@ -29,6 +29,11 @@ public class AutoBackupService {
     public void performBackup() throws Exception {
         File tempDir = new File(System.getProperty("java.io.tmpdir"));
         String localPath = backupService.exportToLocal(tempDir);
+        // Cancel in the logout popup interrupts this thread - stop here rather than upload anyway
+        if (Thread.currentThread().isInterrupted()) {
+            new File(localPath).delete();
+            throw new InterruptedException("Backup cancelled");
+        }
         googleDriveService.upload(new File(localPath));
         log.info("Backup completed and uploaded to Google Drive");
     }

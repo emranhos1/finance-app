@@ -260,7 +260,7 @@ public class LoginController {
 
             Stage registerStage = new Stage();
             registerStage.setTitle("Register New Account");
-            registerStage.setScene(new Scene(root, 400, 300));
+            registerStage.setScene(new Scene(root, 400, 480));
             registerStage.show();
         } catch (IOException e) {
             showAlert("Error", "Failed to open registration window");

@@ -101,6 +101,8 @@ public class FinanceApplication extends Application {
         // fresh, instead of resizing/re-showing the already-visible Dashboard window in place -
         // the latter can leave stale Dashboard pixels ghosted behind the new Login content.
         primaryStage.hide();
+        // a maximized Dashboard would otherwise keep the Login window maximized after logout
+        primaryStage.setMaximized(false);
         primaryStage.setTitle("Daily Finance Management System");
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);

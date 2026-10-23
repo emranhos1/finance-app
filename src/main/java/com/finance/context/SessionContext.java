@@ -19,16 +19,8 @@ public class SessionContext {
         this.currentUser = null;
     }
 
-    public boolean isLoggedIn() {
-        return currentUser != null;
-    }
-
     public Long getCurrentUserId() {
         return currentUser != null ? currentUser.getId() : null;
-    }
-
-    public User.UserRole getCurrentUserRole() {
-        return currentUser != null ? currentUser.getRole() : null;
     }
 
     public boolean isAdmin() {

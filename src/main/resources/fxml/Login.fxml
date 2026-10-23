@@ -46,7 +46,7 @@
     </HBox>
 
     <HBox spacing="10" alignment="CENTER">
-        <Button text="Login" style="-fx-padding: 8; -fx-font-size: 13;" styleClass="btn-primary" onAction="#handleLogin"/>
+        <Button text="Login" defaultButton="true" style="-fx-padding: 8; -fx-font-size: 13;" styleClass="btn-primary" onAction="#handleLogin"/>
         <Button text="Register" style="-fx-padding: 8; -fx-font-size: 13;" styleClass="btn-secondary" onAction="#handleRegister"/>
     </HBox>
 

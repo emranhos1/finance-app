@@ -68,26 +68,6 @@
     -fx-padding: 12;
 }
 
-/* ===== DASHBOARD BALANCE CARDS ===== */
-.balance-card {
-    -fx-border-color: #B7D9CE;
-    -fx-border-radius: 5;
-    -fx-background-color: #ffffff;
-    -fx-background-radius: 5;
-    -fx-padding: 14;
-}
-
-.balance-card-title {
-    -fx-text-fill: #4F6F66;
-    -fx-font-size: 12;
-}
-
-.balance-card-amount {
-    -fx-font-size: 18;
-    -fx-font-weight: bold;
-    -fx-text-fill: #D4AF37;
-}
-
 /* ===== DASHBOARD SUMMARY CARDS ===== */
 .summary-card {
     -fx-border-color: #B7D9CE;
@@ -298,21 +278,6 @@
 .badge-rose   { -fx-background-color: #FBE7E9; -fx-text-fill: #B03A46; }
 .badge-mint   { -fx-background-color: #E1F5EC; -fx-text-fill: #1E7B45; }
 
-/* -- net worth card -- */
-.dash-networth-amount {
-    -fx-font-size: 22;
-    -fx-font-weight: 800;
-    -fx-text-fill: #1B5446;
-}
-
-.dash-chip {
-    -fx-background-color: #F2F7F5;
-    -fx-background-radius: 16;
-    -fx-padding: 3 9;
-    -fx-font-size: 11;
-    -fx-text-fill: #355C50;
-}
-
 /* -- monthly expense mini-table (row 5) -- */
 .dash-monthly-row {
     -fx-padding: 2 4;
@@ -373,31 +338,10 @@
 .dash-tx-icon-transfer { -fx-background-color: #E3EEFB; -fx-text-fill: #1D5FA8; }
 
 .dash-tx-title { -fx-font-size: 11; -fx-text-fill: #26362F; }
-.dash-tx-sub   { -fx-font-size: 9;  -fx-text-fill: #8AA69C; }
 
 .dash-tx-amount-pos     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #1E7B45; }
 .dash-tx-amount-neg     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #C0392B; }
 .dash-tx-amount-neutral { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #26362F; }
-
-/* -- weekly bar chart -- */
-.dash-trend-amount { -fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #26362F; }
-.dash-bar-income   { -fx-background-color: #2E9E5B; -fx-background-radius: 2 2 0 0; }
-.dash-bar-expense  { -fx-background-color: #D9636E; -fx-background-radius: 2 2 0 0; }
-.dash-day-label    { -fx-font-size: 9; -fx-text-fill: #8AA69C; }
-
-.dash-legend-dot-income {
-    -fx-background-color: #2E9E5B;
-    -fx-background-radius: 4;
-    -fx-min-width: 7; -fx-min-height: 7;
-    -fx-max-width: 7; -fx-max-height: 7;
-}
-.dash-legend-dot-expense {
-    -fx-background-color: #D9636E;
-    -fx-background-radius: 4;
-    -fx-min-width: 7; -fx-min-height: 7;
-    -fx-max-width: 7; -fx-max-height: 7;
-}
-.dash-legend-label { -fx-font-size: 10; -fx-text-fill: #8AA69C; }
 
 /* -- expense ratio ring -- */
 .dash-ring-track {
@@ -415,8 +359,4 @@
 
 .dash-top-expense-label { -fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1B5446; }
 .dash-top-expense-value { -fx-font-size: 12; -fx-text-fill: #26362F; }
-
-/* -- net worth trend line -- */
-.dash-trend-line { -fx-stroke: #2E9E5B; -fx-stroke-width: 2; -fx-fill: transparent; }
-.dash-trend-dot  { -fx-fill: #2E9E5B; }
 
