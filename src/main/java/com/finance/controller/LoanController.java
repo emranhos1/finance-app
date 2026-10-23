@@ -49,7 +49,6 @@ public class LoanController {
     @FXML private DatePicker datePicker;
     @FXML private DatePicker dueDatePicker;
     @FXML private TextArea noteArea;
-    @FXML private Button saveLoanBtn;
 
     @FXML private VBox repaymentBox;
     @FXML private Label selectedLoanLabel;
@@ -430,6 +429,7 @@ public class LoanController {
         if (name.isEmpty()) {
             showAlert("Validation Error", "Name is required"); return;
         }
+        if (!confirm("Add loan account '" + name + "'?")) return;
         try {
             loanService.createLoanPerson(sessionContext.getCurrentUserId(), name, note);
             resetPersonForm();

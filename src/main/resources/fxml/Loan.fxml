@@ -121,7 +121,7 @@
                                 <TableColumn fx:id="summaryLentColumn"     text="Total Gave"     prefWidth="105"/>
                                 <TableColumn fx:id="summaryBorrowedColumn" text="Total Took"     prefWidth="115"/>
                             </columns>
-                            <placeholder><Label text="No loan accounts yet. Add one from the Loan Accounts tab."/></placeholder>
+                            <placeholder><Label text="No loans yet. Add a person in the Loan Accounts tab, then save a loan on the left."/></placeholder>
                         </TableView>
                     </VBox>
 

@@ -235,10 +235,6 @@ public class LoanService {
         return loanRepository.findByInitialTransactionId(transactionId);
     }
 
-    public List<Loan> getLoansByUserId(Long userId) {
-        return loanRepository.findByUserIdOrderByLoanDateDesc(userId);
-    }
-
     public List<Loan> getLoansByUserIdAndStatus(Long userId, Loan.LoanStatus status) {
         return loanRepository.findByUserIdAndStatusOrderByLoanDateDesc(userId, status);
     }
