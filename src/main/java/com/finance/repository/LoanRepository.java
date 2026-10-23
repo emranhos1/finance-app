@@ -12,8 +12,6 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
     List<Loan> findByUserIdAndStatusOrderByLoanDateDesc(Long userId, Loan.LoanStatus status);
     List<Loan> findByUserIdAndLoanPersonIdOrderByLoanDateDesc(Long userId, Long loanPersonId);
 
-    /** Finds the loan (if any) that this transaction is the original lend/borrow transaction for -
-     *  used to stop that transaction from being deleted/edited directly from the Transaction tab,
-     *  which would otherwise leave the loan row pointing at a transaction that no longer exists. */
+    /** Loan whose initial transaction this is. Used to block direct edit/delete of that transaction. */
     Optional<Loan> findByInitialTransactionId(Long initialTransactionId);
 }

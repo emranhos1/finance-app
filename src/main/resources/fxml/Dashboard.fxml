@@ -28,7 +28,6 @@
             <Button fx:id="calculatorBtn"  text="Calculator"  styleClass="sidebar-btn"/>
             <Button fx:id="adminBtn"       text="Admin Panel" styleClass="sidebar-btn"/>
 
-            <!-- Spacer pushes Logout to bottom -->
             <Region VBox.vgrow="ALWAYS"/>
 
             <Button fx:id="changePasswordBtn" text="Change Password" styleClass="sidebar-btn"/>
@@ -37,6 +36,6 @@
     </left>
 
     <center>
-        <!-- Content loaded dynamically -->
+        <!-- filled by the controller -->
     </center>
 </BorderPane>

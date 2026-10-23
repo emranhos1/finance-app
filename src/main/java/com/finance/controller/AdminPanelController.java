@@ -184,11 +184,7 @@ public class AdminPanelController {
                 countdown);
     }
 
-    /**
-     * Shows a 1-minute countdown in the status label while waiting for the browser sign-in.
-     * If the user abandons the browser tab, the service-side timeout in GoogleDriveServiceImpl
-     * gives up after the same duration and frees the local callback port for the next attempt.
-     */
+    /** 1-minute countdown while waiting for sign-in; the service times out after the same time. */
     private Timeline startConnectCountdown() {
         final int timeoutSeconds = 60;
         AtomicInteger remaining = new AtomicInteger(timeoutSeconds);

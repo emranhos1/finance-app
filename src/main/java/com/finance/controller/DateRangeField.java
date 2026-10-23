@@ -14,12 +14,7 @@ import javafx.stage.Popup;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-/**
- * One field for picking a date range: click it, then click the first and the last day on the
- * same calendar. Picking only one day and closing the calendar means that single day. The days
- * in the chosen range are highlighted. Reuses DatePicker's own calendar (via its skin) so it
- * looks like the other date fields in the app.
- */
+/** Date range picker on one DatePicker calendar. One click then close means a single day. */
 public class DateRangeField extends Button {
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String PROMPT = "Select dates  ▾";
@@ -43,7 +38,6 @@ public class DateRangeField extends Button {
         popup.getContent().add(box);
         popup.setAutoHide(true);
         popup.setOnHidden(e -> {
-            // only a start day was clicked: treat it as that single day
             if (start != null && end == null) { end = start; refresh(); onChange.run(); }
         });
 
@@ -59,7 +53,7 @@ public class DateRangeField extends Button {
                 popup.hide();
                 onChange.run();
             }
-            // clear so clicking the same day again still registers
+            // clear so the same day can be clicked again
             Platform.runLater(() -> calendarSource.setValue(null));
         });
 
@@ -74,12 +68,10 @@ public class DateRangeField extends Button {
 
     public LocalDate getStart() { return start; }
 
-    /** End of the range; same as start when a single day was picked. */
     public LocalDate getEnd() { return end != null ? end : start; }
 
     public void setOnChange(Runnable onChange) { this.onChange = onChange != null ? onChange : () -> { }; }
 
-    /** Sets the range without firing onChange (used for the initial default). */
     public void setRange(LocalDate start, LocalDate end) {
         this.start = start;
         this.end = end;
@@ -99,7 +91,6 @@ public class DateRangeField extends Button {
 
         hint.setText(start == null || end != null ? "Click the first day" : "Now click the last day");
 
-        // re-setting the factory makes the calendar redraw its cells with the new highlight
         calendarSource.setDayCellFactory(dp -> new DateCell() {
             @Override
             public void updateItem(LocalDate item, boolean empty) {

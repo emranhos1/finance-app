@@ -295,10 +295,7 @@ public class LoanController {
         Long transferTypeId = transferType == null ? null : transferType.getId();
         Long categoryId = category == null ? null : category.getId();
 
-        // If this person already owes the opposite direction (e.g. saving "I Took" money while
-        // they still have open "I Gave" loans owed to the user), this payment is most likely
-        // settling that old debt rather than being an unrelated new loan - ask instead of silently
-        // creating a look-alike, unrelated loan next to debt that never gets marked repaid.
+        // same person owes the other direction: this is likely settling that debt, so ask first
         Loan.LoanType oppositeType = (type == Loan.LoanType.LENT) ? Loan.LoanType.BORROWED : Loan.LoanType.LENT;
         List<Loan> openOpposite = new ArrayList<>();
         for (Loan loan : loanService.getLoansByPerson(sessionContext.getCurrentUserId(), person.getId())) {
@@ -358,7 +355,6 @@ public class LoanController {
                 }
                 return;
             }
-            // else: user chose "Record as New Loan" - fall through to the normal create-loan flow below
         } else {
             if (!confirm("Save this loan entry?")) return;
         }
@@ -549,8 +545,7 @@ public class LoanController {
         a.showAndWait();
     }
 
-    /** Alert's default contentText can clip long or multi-line messages instead of resizing to fit -
-     *  using a wrapped Label as the dialog's content guarantees the full text is always visible. */
+    /** Wrapped Label so long messages are not clipped. */
     private void setWrappedContent(Alert alert, String msg) {
         Label label = new Label(msg);
         label.setWrapText(true);

@@ -9,7 +9,7 @@
 
     <TabPane VBox.vgrow="ALWAYS">
 
-        <!-- ===== TAB 1: Accounts ===== -->
+        <!-- accounts tab -->
         <Tab text="Accounts" closable="false">
             <HBox spacing="15" styleClass="tab-content">
 
@@ -32,10 +32,8 @@
                     <Label text="Low Balance Alert Threshold (optional)"/>
                     <TextField fx:id="lowBalanceThresholdField" promptText="e.g. 500 — warn when balance falls below this"/>
 
-                    <!-- Add button: shown by default -->
                     <Button fx:id="accAddBtn" text="Add Account" onAction="#handleAddAccount" maxWidth="Infinity" styleClass="btn-primary"/>
 
-                    <!-- Update/Delete/Cancel: hidden by default -->
                     <HBox fx:id="accEditButtons" spacing="8" managed="false" visible="false">
                         <Button text="Update" onAction="#handleUpdateAccount" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteAccount" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
@@ -57,7 +55,7 @@
             </HBox>
         </Tab>
 
-        <!-- ===== TAB 2: Account Types ===== -->
+        <!-- account types tab -->
         <Tab text="Account Types" closable="false">
             <HBox spacing="15" styleClass="tab-content">
 
@@ -65,10 +63,8 @@
                     <Label text="Type Name"/>
                     <TextField fx:id="typeNameField" promptText="e.g. cash, bank, savings"/>
 
-                    <!-- Add button: shown by default -->
                     <Button fx:id="typeAddBtn" text="Add Type" onAction="#handleAddType" maxWidth="Infinity" styleClass="btn-primary"/>
 
-                    <!-- Update/Delete/Cancel: hidden by default -->
                     <HBox fx:id="typeEditButtons" spacing="8" managed="false" visible="false">
                         <Button text="Update" onAction="#handleUpdateType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>

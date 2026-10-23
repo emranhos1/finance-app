@@ -49,10 +49,7 @@ public class LoanService {
         loanPersonRepository.deleteById(loanPersonId);
     }
 
-    /** Renames a loan account and cascades the new name onto every one of its existing loans,
-     *  since {@link Loan#getPersonName()} is a denormalized copy read directly by the selected-loan
-     *  labels and the dashboard loan reminder - without this cascade those would keep showing the
-     *  old name until a new loan was created. */
+    /** Renames a loan account and copies the new name to its loans (personName is denormalized). */
     public LoanPerson updateLoanPerson(Long loanPersonId, Long userId, String newName, String newNote) {
         LoanPerson person = loanPersonRepository.findById(loanPersonId)
                 .orElseThrow(() -> new IllegalArgumentException("Loan account not found"));
@@ -76,9 +73,7 @@ public class LoanService {
         return person;
     }
 
-    /** Moves every loan from sourceId onto targetId and deletes the source loan account - the
-     *  intentional escape hatch for {@link #deleteLoanPerson} refusing to delete a person who
-     *  still has loans (e.g. two accounts were accidentally created for the same real person). */
+    /** Moves all loans to targetId and deletes the source account; for accounts duplicated by mistake. */
     public void mergeLoanPersons(Long sourceId, Long targetId, Long userId) {
         if (sourceId.equals(targetId))
             throw new IllegalArgumentException("Cannot merge a loan account into itself");
@@ -156,16 +151,8 @@ public class LoanService {
         return loan;
     }
 
-    /** Repays a lump sum across a person's open loans of one type at once, oldest first, fully
-     *  settling as many as the amount covers and leaving at most one partially repaid - so a
-     *  single real-world payment covering several separate loans (e.g. money lent on different
-     *  dates, all paid back together) doesn't require repaying each one individually with the
-     *  exact matching amount.
-     *  <p>
-     *  If the amount received exceeds what was actually owed, the excess is not repayment at all -
-     *  it means the other party just lent the excess to the user (or vice versa), so it is recorded
-     *  as a brand new loan of the OPPOSITE type rather than silently rejected or folded into the
-     *  repayment figures. */
+    /** Repays a lump sum across open loans of one type, oldest first.
+     *  Any excess becomes a new loan of the opposite type. */
     public BulkSettlementResult recordBulkRepayment(Long userId, Long loanPersonId, Loan.LoanType type,
                                                       BigDecimal totalAmount, Long accountId, Long transferTypeId,
                                                       Long categoryId, LocalDate date, String note) {
@@ -228,9 +215,7 @@ public class LoanService {
                 .orElseThrow(() -> new IllegalArgumentException("Loan not found"));
     }
 
-    /** The loan (if any) that a given transaction is the original lend/borrow transaction for -
-     *  lets the Transaction tab warn/redirect before deleting or editing it there instead of
-     *  finding out only after {@link TransactionService#deleteTransaction} rejects it. */
+    /** The loan this transaction originally created, if any. */
     public Optional<Loan> findLoanByInitialTransactionId(Long transactionId) {
         return loanRepository.findByInitialTransactionId(transactionId);
     }
@@ -243,9 +228,7 @@ public class LoanService {
         return loanRepository.findByUserIdAndLoanPersonIdOrderByLoanDateDesc(userId, loanPersonId);
     }
 
-    /** One summary row per person: totals and net remaining across all their loans, so the same
-     *  person lending/borrowing multiple times over time no longer shows as repeated look-alike
-     *  rows in the main table. */
+    /** One summary row per person across all their loans. */
     public List<PersonSummary> getPersonSummaries(Long userId) {
         List<PersonSummary> result = new ArrayList<>();
         for (LoanPerson person : getLoanPersonsByUserId(userId)) {
@@ -284,13 +267,10 @@ public class LoanService {
         private BigDecimal totalBorrowed;
         private BigDecimal netRemaining;
         private int openCount;
-        /** Still-unpaid amount of only the "I Gave" (LENT) loans - not netted against BORROWED. */
         private BigDecimal lentRemaining;
-        /** Still-unpaid amount of only the "I Took" (BORROWED) loans - not netted against LENT. */
         private BigDecimal borrowedRemaining;
     }
 
-    /** OPEN loans whose due date is within the next daysAhead days, or already overdue. */
     public List<Loan> getDueSoonOrOverdueLoans(Long userId, int daysAhead) {
         LocalDate threshold = LocalDate.now().plusDays(daysAhead);
         List<Loan> result = new ArrayList<>();
@@ -302,14 +282,8 @@ public class LoanService {
         return result;
     }
 
-    /** Deleting a loan reverses every transaction it created - the initial lend/borrow and any
-     *  repayments - so the account balance always matches what's left in the loans table, instead
-     *  of silently drifting when only the roster row was removed.
-     *  <p>
-     *  The loan row is deleted FIRST, before its transactions: {@link TransactionService#deleteTransaction}
-     *  refuses to delete a loan's initiating transaction directly (to stop the Transaction tab from
-     *  leaving an orphaned loan behind) by checking whether any loan still points to it - so that
-     *  transaction can only be deleted once this loan itself no longer exists. */
+    /** Deletes the loan row first, then reverses its transactions;
+     *  deleteTransaction refuses to delete a transaction a loan still points to. */
     public void deleteLoan(Long loanId, Long userId) {
         Loan loan = getLoanById(loanId);
         if (!loan.getUserId().equals(userId)) throw new SecurityException("Access denied");

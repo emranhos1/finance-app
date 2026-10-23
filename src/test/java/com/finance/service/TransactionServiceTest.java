@@ -22,14 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the balance arithmetic in TransactionService - this is the same logic manually
- * audited against production account_logs data during a real debugging session (a Bank->Cash
- * transfer edited several times, plus an expense deleted after the fact). These tests lock in
- * that the math stays correct: create -> edit amount up/down -> delete must always leave both
- * accounts' balances internally consistent, and insufficient-balance guards must reject
- * overdrafts without partially applying the change.
- */
+/** Balance math tests for TransactionService: create, edit, delete, and overdraft guards. */
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
 

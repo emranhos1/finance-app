@@ -83,7 +83,7 @@
                 <Button fx:id="disconnectDriveBtn" text="Logout Google Drive" onAction="#handleDisconnectDrive" styleClass="btn-secondary" disable="true"/>
             </HBox>
 
-            <!-- FlowPane: the buttons wrap onto a second line in a narrow card instead of cutting their text -->
+            <!-- FlowPane so buttons wrap in a narrow card instead of cutting text -->
             <FlowPane hgap="10" vgap="10" alignment="CENTER_LEFT">
                 <Button fx:id="uploadDriveBtn" text="Upload to Google Drive" onAction="#handleUploadDrive" styleClass="btn-primary" disable="true"/>
                 <Button fx:id="downloadDriveBtn" text="Download &amp; Import from Google Drive" onAction="#handleDownloadDrive" styleClass="btn-secondary" disable="true"/>

@@ -283,9 +283,6 @@ public class TransactionController {
         loadTransactionsPage(0);
     }
 
-    /** Writes a ready-to-fill sample CSV using the user's own account/category names (so it
-     *  matches on import without any guessing) - answers "how do I know the format" without
-     *  requiring the user to read documentation. */
     @FXML
     public void handleDownloadImportTemplate() {
         Long userId = sessionContext.getCurrentUserId();
@@ -322,13 +319,7 @@ public class TransactionController {
         return (value.contains(",") || value.contains("\"")) ? "\"" + value.replace("\"", "\"\"") + "\"" : value;
     }
 
-    /** CSV format: Date,Type,Account,Category,Amount,Note (header row required). Date is
-     *  yyyy-MM-dd; Type is INCOME or EXPENSE; Account/Category are matched by name against the
-     *  user's existing ones (Category may be blank for uncategorized). Unmatched or malformed
-     *  rows are skipped and reported - never guessed or auto-created - and every valid row is
-     *  posted through the same {@link TransactionService#recordIncomeTransaction} /
-     *  {@link TransactionService#recordExpenseTransaction} used everywhere else, so balances stay
-     *  correct. */
+    /** CSV: Date,Type,Account,Category,Amount,Note. Bad rows are skipped and reported, never auto-created. */
     @FXML
     public void handleImportTransactionsCSV() {
         FileChooser chooser = new FileChooser();
@@ -448,7 +439,6 @@ public class TransactionController {
         validRows.add(new ImportRow(type, date, amount, account.getId(), categoryId, note));
     }
 
-    /** Minimal quoted-CSV field splitter - handles a comma inside a quoted Note field. */
     private List<String> parseCsvLine(String line) {
         List<String> fields = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -702,8 +692,7 @@ public class TransactionController {
         a.showAndWait();
     }
 
-    /** Alert's default contentText can clip long or multi-line messages instead of resizing to fit -
-     *  using a wrapped Label as the dialog's content guarantees the full text is always visible. */
+    /** Wrapped Label so long messages are not clipped. */
     private void setWrappedContent(Alert alert, String msg) {
         Label label = new Label(msg);
         label.setWrapText(true);

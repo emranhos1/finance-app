@@ -32,10 +32,8 @@
         <Label fx:id="lowBalanceReminderLabel" text="" wrapText="true" HBox.hgrow="ALWAYS"/>
     </HBox>
 
-    <!-- Row 1: account type balance cards, built dynamically in controller -->
     <HBox fx:id="balanceCardsBox" spacing="8"/>
 
-    <!-- Row 2: Given/Taken (20%) | Recent transactions (20%) | Expense%/Top expense (20%) | Expense Breakdown (40%) -->
     <GridPane hgap="10">
         <columnConstraints>
             <ColumnConstraints percentWidth="20" minWidth="10"/>
@@ -44,12 +42,10 @@
             <ColumnConstraints percentWidth="40" minWidth="10"/>
         </columnConstraints>
 
-        <!-- Given / Taken sections with one line per person, built dynamically in controller -->
         <VBox fx:id="loansCard" styleClass="dash-summary-card" spacing="2" minWidth="0" GridPane.columnIndex="0" GridPane.rowIndex="0">
             <HBox alignment="CENTER_LEFT" spacing="6">
                 <Label text="Given/Taken" styleClass="dash-section-title"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <!-- Given total (green) and, if any, Taken total (red), filled in by the controller -->
                 <HBox fx:id="loansTotalBox" alignment="CENTER_RIGHT" spacing="4"/>
             </HBox>
             <VBox fx:id="loansBox" spacing="0"/>
@@ -86,7 +82,6 @@
         </VBox>
     </GridPane>
 
-    <!-- Row 3: Monthly Income & Expense — one card: Month | Income | Cash | Bank | Cash + Bank | % -->
     <VBox styleClass="dash-summary-card" spacing="4">
         <HBox alignment="CENTER_LEFT" spacing="8">
             <Label text="Monthly Income &amp; Expense" styleClass="dash-section-title"/>

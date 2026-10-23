@@ -7,8 +7,7 @@
 
     <groupId>com.finance</groupId>
     <artifactId>daily-finance-app</artifactId>
-    <!-- The app's version: shown to users, compared against GitHub Releases for updates, and must
-         match the release tag (v1.1.0 <-> 1.1.0). Bump it for every release. -->
+    <!-- must match the release tag (v1.1.0 = 1.1.0), bump for every release -->
     <version>1.2.4</version>
     <packaging>jar</packaging>
 
@@ -25,7 +24,7 @@
     <properties>
         <java.version>21</java.version>
         <javafx.version>17.0.2</javafx.version>
-        <!-- Spring Boot 2.7.14's default Lombok (1.18.28) can't compile on JDK 21 -->
+        <!-- default Lombok of Spring Boot 2.7.14 does not compile on JDK 21 -->
         <lombok.version>1.18.34</lombok.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
@@ -82,13 +81,11 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Reads the GitHub Releases API response for the update check (version managed by Spring Boot) -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
         </dependency>
 
-        <!-- Google Drive Backup & Restore feature -->
         <dependency>
             <groupId>com.google.api-client</groupId>
             <artifactId>google-api-client</artifactId>
@@ -107,7 +104,7 @@
     </dependencies>
 
     <build>
-        <!-- fixed jar name (target/dfms.jar) so the installer build doesn't depend on the version -->
+        <!-- fixed jar name so the installer build does not depend on the version -->
         <finalName>dfms</finalName>
         <plugins>
             <plugin>

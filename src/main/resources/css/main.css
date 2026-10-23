@@ -1,13 +1,9 @@
-/* ===== GLOBAL FONT ===== */
-/* Explicit Bengali-capable font so Bangla text renders correctly on every machine.
-   Without this, JavaFX falls back to whatever generic font the OS reports as default,
-   and on some Windows installs that font has no Bangla glyphs, showing empty boxes.
-   "Nirmala UI" is bundled with Windows 8+ and covers Bangla; the rest are fallbacks. */
+/* Bangla-capable font, the default OS font can show empty boxes on some Windows installs */
 .root {
     -fx-font-family: "Nirmala UI", "Segoe UI", "Vrinda", "Noto Sans Bengali", sans-serif;
 }
 
-/* ===== LOAN REMINDER TOAST ===== */
+/* loan reminder toast */
 .dash-loan-toast {
     -fx-background-color: #FFF3CD;
     -fx-border-color: #E0A81C;
@@ -16,7 +12,7 @@
     -fx-padding: 8 12;
 }
 
-/* ===== SIDEBAR ===== */
+/* sidebar */
 .sidebar {
     -fx-background-color: #1B5446;
     -fx-padding: 10;
@@ -46,7 +42,7 @@
     -fx-border-width: 0 0 0 3;
 }
 
-/* ===== GENERAL ===== */
+/* general */
 .content-pane {
     -fx-padding: 20;
     -fx-spacing: 16;
@@ -68,7 +64,7 @@
     -fx-padding: 12;
 }
 
-/* ===== DASHBOARD SUMMARY CARDS ===== */
+/* dashboard cards */
 .summary-card {
     -fx-border-color: #B7D9CE;
     -fx-border-radius: 5;
@@ -92,7 +88,7 @@
     -fx-text-fill: #216E59;
 }
 
-/* ===== BRAND BUTTONS ===== */
+/* brand buttons */
 .btn-primary {
     -fx-background-color: #216E59;
     -fx-text-fill: #ffffff;
@@ -129,12 +125,12 @@
     -fx-background-color: #c29c28;
 }
 
-/* ===== BRAND TEXT ===== */
+/* brand text */
 .app-title {
     -fx-text-fill: #1B5446;
 }
 
-/* ===== SPLASH SCREEN ===== */
+/* splash screen */
 .splash-root {
     -fx-background-color: transparent;
 }
@@ -164,7 +160,7 @@
     -fx-progress-color: #D4AF37;
 }
 
-/* ===== SIDEBAR LOGO ===== */
+/* sidebar logo */
 .sidebar-logo-box {
     -fx-padding: 20 0 15 0;
     -fx-spacing: 6;
@@ -177,7 +173,7 @@
     -fx-letter-spacing: 1px;
 }
 
-/* ===== CALCULATOR ===== */
+/* calculator */
 .calc-error-label {
     -fx-text-fill: #c0392b;
     -fx-font-size: 12px;
@@ -188,7 +184,7 @@
     -fx-border-color: transparent transparent transparent transparent;
 }
 
-/* ===== BACKUP & RESTORE ===== */
+/* backup and restore */
 .backup-status-success {
     -fx-text-fill: #1E7B45;
 }
@@ -196,7 +192,7 @@
     -fx-text-fill: #c0392b;
 }
 
-/* ===== DASHBOARD REDESIGN ===== */
+/* dashboard */
 .dash-scroll {
     -fx-background-color: transparent;
 }
@@ -204,9 +200,7 @@
     -fx-background-color: transparent;
 }
 
-/* Compact card/title/label variants used only on the Dashboard, so other screens
-   (Calculator, Forgot Password) that reuse .summary-card/.card-title/.card-label
-   are not affected. */
+/* compact variants for the Dashboard only, so Calculator and Forgot Password keep the normal cards */
 .dash-summary-card {
     -fx-border-color: #B7D9CE;
     -fx-border-radius: 5;
@@ -241,7 +235,7 @@
     -fx-font-weight: bold;
 }
 
-/* -- account cards (row 1) -- */
+/* account cards */
 .dash-account-card {
     -fx-background-color: #ffffff;
     -fx-background-radius: 10;
@@ -278,7 +272,7 @@
 .badge-rose   { -fx-background-color: #FBE7E9; -fx-text-fill: #B03A46; }
 .badge-mint   { -fx-background-color: #E1F5EC; -fx-text-fill: #1E7B45; }
 
-/* -- monthly expense mini-table (row 5) -- */
+/* monthly expense table */
 .dash-monthly-row {
     -fx-padding: 2 4;
 }
@@ -317,7 +311,7 @@
     -fx-text-fill: #1B5446;
 }
 
-/* -- recent transactions -- */
+/* recent transactions */
 .dash-tx-row {
     -fx-padding: 3 0 3 0;
     -fx-border-color: transparent transparent #EEF3F1 transparent;
@@ -343,7 +337,7 @@
 .dash-tx-amount-neg     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #C0392B; }
 .dash-tx-amount-neutral { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #26362F; }
 
-/* -- expense ratio ring -- */
+/* expense ratio ring */
 .dash-ring-track {
     -fx-fill: transparent;
     -fx-stroke: #EEF3F1;

@@ -6,11 +6,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 
-/** Backs up to Google Drive on logout (not on startup), so it captures the data entered during
- *  the session that is about to end rather than yesterday's state. The logout flow asks the user
- *  every time whether to back up, rather than deciding silently based on a schedule - this service
- *  just checks whether Google Drive is already connected and performs the actual export/upload;
- *  the logout flow itself prompts to connect first if it isn't. */
+/** Backs up to Google Drive on logout so the session's data is included.
+ *  Caller must connect to Drive first; the logout flow asks the user. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -22,10 +19,7 @@ public class AutoBackupService {
         return googleDriveService.hasStoredCredentials() || googleDriveService.isConnected();
     }
 
-    /** Exports the current database and uploads it to Google Drive. Assumes Google Drive is
-     *  already connected (caller's job to connect first). Throws on any failure instead of
-     *  swallowing it - the caller must show the real reason to the user rather than silently
-     *  continuing as if the backup succeeded. */
+    /** Exports the DB and uploads to Drive. Throws on failure so the caller can show the reason. */
     public void performBackup() throws Exception {
         File tempDir = new File(System.getProperty("java.io.tmpdir"));
         String localPath = backupService.exportToLocal(tempDir);

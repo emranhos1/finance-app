@@ -1,8 +1,4 @@
-# Publishes a new GitHub Release automatically whenever code is merged/pushed to the `production`
-# branch AND pom.xml's <version> is one that has not been released yet. Pushes that keep the same
-# version (small fixes not meant as a release) build nothing.
-# For a release, the same commit must also contain release-notes/v<version>.md - it becomes the
-# release text the app shows under "What's new?".
+# Releases when pom.xml has a new version and release-notes/v<version>.md exists. Same version = no build.
 name: Release
 
 on:
@@ -34,7 +30,7 @@ jobs:
             "release=false" >> $env:GITHUB_OUTPUT
           } else {
             if (-not (Test-Path "release-notes/v$version.md")) { throw "Missing release-notes/v$version.md for new version $version" }
-            # English part first, then the Bangla part after this marker - the app's "What's new?" splits on it
+            # English part first, then the Bangla part after this marker (app splits on it)
             if (-not (Select-String -Path "release-notes/v$version.md" -SimpleMatch "<!-- bn -->" -Quiet)) { throw "release-notes/v$version.md needs an English part, then '<!-- bn -->', then a Bangla part" }
             "release=true" >> $env:GITHUB_OUTPUT
           }
@@ -50,8 +46,7 @@ jobs:
         if: steps.version.outputs.release == 'true'
         run: mvn -B package -DskipTests
 
-      # credentials.json is not in git: on each PC it is copied once next to DFMS.exe, and the app
-      # reads it from there (see GoogleDriveServiceImpl.openCredentials).
+      # credentials.json is not in git, it is copied next to DFMS.exe on each PC
       - name: Build app image with its own Java runtime (jpackage)
         if: steps.version.outputs.release == 'true'
         shell: pwsh

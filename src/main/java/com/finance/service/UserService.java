@@ -42,9 +42,7 @@ public class UserService {
         return userRepository.save(builder.build());
     }
 
-    /** Lets an admin (or the user themselves, if such a screen is ever added) set/replace the
-     *  security question for an account that doesn't have one yet - e.g. accounts created before
-     *  this feature existed. */
+    /** Sets the security question for accounts that don't have one yet. */
     public void setSecurityQuestion(Long userId, String question, String answer) {
         if (question == null || question.trim().isEmpty() || answer == null || answer.trim().isEmpty())
             throw new IllegalArgumentException("Security question and answer are required");
@@ -55,8 +53,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    /** Null/empty if this account has no security question set - self-service reset must be
-     *  refused in that case rather than falling back to an unguarded reset. */
+    /** Null/empty means no question set; reject self-service reset then. */
     public String getSecurityQuestion(String username) {
         return userRepository.findByUsername(username)
                 .map(User::getSecurityQuestion)
@@ -96,8 +93,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    /** Self-service password change for a logged-in user - requires the current password,
-     *  unlike resetPassword() which is used by the security-question recovery flow. */
+    /** Password change for a logged-in user; needs the current password. */
     public void changePassword(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

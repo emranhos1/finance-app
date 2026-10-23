@@ -10,8 +10,7 @@
             fitToWidth="true" styleClass="dash-scroll">
 <VBox spacing="10" style="-fx-padding: 15;">
 
-    <!-- Page-wide filters: every section below (summary, categories, balances, trend, account log)
-         reloads as soon as one of these changes -->
+    <!-- page-wide filters, every section reloads when one changes -->
     <HBox spacing="8" style="-fx-alignment: CENTER-LEFT;">
         <MenuButton fx:id="accountFilterMenuButton" text="All Accounts" prefWidth="170"/>
         <DateRangeField fx:id="filterDateRangeField"/>

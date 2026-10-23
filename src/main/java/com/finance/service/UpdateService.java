@@ -28,12 +28,7 @@ import java.util.List;
 import java.util.function.DoubleConsumer;
 import java.util.prefs.Preferences;
 
-/**
- * Checks GitHub Releases for a newer version of the app and downloads/launches its update
- * installer. The repo is public, so no token is needed. Every release built by
- * .github/workflows/release.yml carries two assets this class relies on:
- * {@code DFMS-Update-<version>.exe} and {@code DFMS-Update-<version>.exe.sha256}.
- */
+/** Checks GitHub Releases for a newer version and downloads its installer (.exe plus .sha256 asset). */
 @Service
 @Slf4j
 public class UpdateService {
@@ -58,20 +53,18 @@ public class UpdateService {
 
     public String getCurrentVersion() { return currentVersion; }
 
-    /** Outcome of an update check, so the login screen can say which one happened. */
     public enum CheckStatus { AVAILABLE, UP_TO_DATE, FAILED, NOT_CHECKED }
 
     @Data
     @AllArgsConstructor
     public static class CheckResult {
         private CheckStatus status;
-        /** Only set when status is AVAILABLE. */
         private ReleaseInfo release;
     }
 
-    /** Asks GitHub for the latest release. Never throws: offline/any error comes back as FAILED. */
+    /** Never throws; any error comes back as FAILED. */
     public CheckResult checkForUpdate() {
-        // unfiltered "@project.version@" means a dev run straight from an IDE - never offer updates there
+        // unfiltered placeholder means an IDE run, no updates
         if (currentVersion == null || currentVersion.contains("@")) return new CheckResult(CheckStatus.NOT_CHECKED, null);
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.github.com/repos/" + repo + "/releases/latest"))
@@ -95,7 +88,7 @@ public class UpdateService {
                 if (name.startsWith(UPDATE_ASSET_PREFIX) && name.endsWith(".exe")) installerUrl = url;
                 if (name.startsWith(UPDATE_ASSET_PREFIX) && name.endsWith(".exe.sha256")) checksumUrl = url;
             }
-            // newer release whose installer isn't attached (yet) - nothing installable, treat as current
+            // release has no installer yet, treat as current
             if (installerUrl == null) return new CheckResult(CheckStatus.UP_TO_DATE, null);
 
             String notes = json.has("body") && !json.get("body").isJsonNull() ? json.get("body").getAsString() : "";
@@ -106,9 +99,7 @@ public class UpdateService {
         }
     }
 
-    /** Downloads the update installer into the folder the user picked, verifying its SHA-256 when
-     *  the release has one. If that folder already holds this version's installer intact (e.g. the
-     *  wizard was cancelled last time), it is reused instead of downloaded again. */
+    /** Downloads the installer, checks SHA-256 if present, reuses an intact existing file. */
     public Path downloadInstaller(ReleaseInfo release, Path folder, DoubleConsumer progress) throws IOException, InterruptedException {
         Path target = folder.resolve(UPDATE_ASSET_PREFIX + release.getVersion() + ".exe");
         String expected = release.getChecksumUrl() != null ? fetchExpectedChecksum(release) : null;
@@ -144,12 +135,7 @@ public class UpdateService {
         return target;
     }
 
-    /**
-     * Deletes the update installers this app downloaded earlier, keeping only {@code keep}. The
-     * download folder is never scanned: only exact paths the app itself recorded at download time
-     * are touched, so other files in that folder (or another app's installers) are never deleted.
-     * Best effort - a file that can't be deleted (e.g. open elsewhere) stays recorded for next time.
-     */
+    /** Deletes old installers the app downloaded, except keep. Only recorded paths are touched. */
     public void deleteOldDownloads(Path keep) {
         Path keepPath = keep.toAbsolutePath().normalize();
         List<String> stillThere = new ArrayList<>();
@@ -199,8 +185,7 @@ public class UpdateService {
         return toHex(digest.digest());
     }
 
-    /** Opens the installer's normal wizard, which asks where to install (pre-filled with the
-     *  current install folder) and can start the app again when it finishes. */
+    /** Opens the installer wizard. */
     public void launchInstaller(Path installer) throws IOException {
         new ProcessBuilder(installer.toString()).start();
     }

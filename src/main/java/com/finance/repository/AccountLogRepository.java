@@ -16,14 +16,8 @@ import java.util.List;
 public interface AccountLogRepository extends JpaRepository<AccountLog, Long> {
     List<AccountLog> findByAccountIdOrderByIdAsc(Long accountId);
 
-    /** Account Log filters on the Reports tab. Dates are always passed (callers use wide defaults
-     *  when unset); a null referenceType/categoryId means "don't filter on it". Category is read
-     *  from the transaction the log row points to (referenceId is the transaction id; null for
-     *  MANUAL rows). Loan money - a loan's original lend/borrow transaction and its repayments -
-     *  is left out, matching how the rest of the Reports page skips loans. */
-    // Date range uses the TRANSACTION's date (what the Transaction tab and the rest of Reports
-    // filter on), falling back to when the log row was written only for rows with no transaction
-    // (MANUAL adjustments, or a transaction that has since been deleted).
+    /** Reports account log filter. Null referenceType/categoryId means no filter. Loan transactions are excluded like in the rest of Reports. */
+    // date range uses the transaction date; falls back to the log time for MANUAL rows or deleted transactions
     @Query("SELECT l FROM AccountLog l WHERE l.accountId IN :accountIds " +
            "AND (EXISTS (SELECT dt.id FROM Transaction dt WHERE dt.id = l.referenceId AND dt.date BETWEEN :fromDate AND :toDate) " +
            "     OR (NOT EXISTS (SELECT dt2.id FROM Transaction dt2 WHERE dt2.id = l.referenceId) " +

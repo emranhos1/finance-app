@@ -63,7 +63,7 @@ public class DashboardHomeController {
 
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH);
     private static final DateTimeFormatter FULL_MONTH_FMT = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
-    // Monthly Income & Expense card: fixed month column, value columns share the rest equally
+    // fixed month column, value columns share the rest
     private static final double MONTH_COL_WIDTH = 50;
     private static final double VALUE_COL_WIDTH = 120;
     private static final String[] BADGE_PALETTE = {"badge-teal", "badge-gold", "badge-blue", "badge-purple", "badge-rose", "badge-mint"};
@@ -94,9 +94,8 @@ public class DashboardHomeController {
     @FXML private VBox monthlyIncomeExpenseBox;
     @FXML private ComboBox<Integer> monthlyYearCombo;
 
-    /** Year shown in the Monthly Income & Expense card - picked from monthlyYearCombo. */
     private int selectedYear;
-    /** True while the year list is being refilled, so that doesn't count as the user picking a year. */
+    /** True while the year list is refilled, so it is not a user pick. */
     private boolean updatingYearCombo;
 
     @FXML
@@ -226,8 +225,6 @@ public class DashboardHomeController {
         buildMonthlyIncomeExpenseTable(monthlyIncomeExpenseBox, income, cash, bank, userId, accounts, selectedYear);
     }
 
-    /** Refills the year dropdown (current year + every year with saved figures) and keeps
-     *  selectedYear selected. */
     private void refreshYearCombo(Long userId) {
         List<Integer> years = monthlyExpenseOverrideService.getAvailableYears(userId);
         if (!years.contains(selectedYear)) selectedYear = LocalDate.now().getYear();
@@ -240,10 +237,7 @@ public class DashboardHomeController {
         }
     }
 
-    /** Each month's total Bank + Cash income of the given year (index 0 = Jan), the base for the
-     *  expense %. Same rules as the expense figures: the current month of the current year is
-     *  recalculated from its transactions and auto-saved unless its income was saved manually; every
-     *  other month shows the income saved in monthly_expense_overrides (0 if none). */
+    /** Monthly Bank + Cash income (index 0 = Jan), base for the expense %. Only the current month is recalculated. */
     private MonthlyFigures loadMonthlyIncome(Long userId, List<Account> accounts, int year) {
         LocalDate today = LocalDate.now();
         int currentMonth = year == today.getYear() ? today.getMonthValue() : -1;
@@ -265,7 +259,6 @@ public class DashboardHomeController {
         return income;
     }
 
-    /** 12 monthly figures of the current year (index 0 = Jan) and whether each was saved manually. */
     private static final class MonthlyFigures {
         final BigDecimal[] amounts = new BigDecimal[12];
         final boolean[] manual = new boolean[12];
@@ -361,11 +354,7 @@ public class DashboardHomeController {
         return row;
     }
 
-    /**
-     * "Expense of this month's income" ring - scoped to Bank + Cash only (like the Net worth
-     * card), not every account type. mInc is income received into Bank/Cash accounts this month.
-     * mExp is EXPENSE transactions paid from Bank/Cash accounts this month (transfers excluded).
-     */
+    /** Bank + Cash only, same as the Net worth card. Transfers are excluded. */
     private void buildExpenseRing(Long userId, List<Account> accounts, LocalDate monthStart, LocalDate today) {
         List<Long> bankAndCashIds = new ArrayList<>();
         for (Account a : accounts) {
@@ -387,7 +376,6 @@ public class DashboardHomeController {
         int pct = pctPrecise.setScale(0, RoundingMode.HALF_UP).intValue();
         expenseRingLabel.setText(pctPrecise.setScale(2, RoundingMode.HALF_UP).toPlainString() + "%");
 
-        // remove any previously drawn ring shapes (keep the centered label)
         expenseRingStack.getChildren().removeIf(n -> n instanceof Circle);
 
         double radius = 22;
@@ -406,7 +394,6 @@ public class DashboardHomeController {
         expenseRingStack.getChildren().add(0, track);
     }
 
-    /** Scoped to Bank + Cash accounts only, matching Net worth and the expense ring. */
     private void buildTopExpense(Long userId, List<Account> accounts, LocalDate monthStart, LocalDate today) {
         List<Long> bankAndCashIds = new ArrayList<>();
         for (Account a : accounts) {
@@ -439,9 +426,7 @@ public class DashboardHomeController {
         }
     }
 
-    /** "Given" (people who owe the user, LENT) and "Taken" (people the user owes, BORROWED)
-     *  sections, one line per person with a non-zero outstanding amount, largest first. The two
-     *  sides are not netted against each other. The whole card is hidden when both are empty. */
+    /** Given (LENT) and Taken (BORROWED) are not netted. Card is hidden when both are empty. */
     private void buildLoans(Long userId) {
         List<LoanService.PersonSummary> summaries = loanService.getPersonSummaries(userId);
         List<LoanService.PersonSummary> given = new ArrayList<>();
@@ -458,7 +443,6 @@ public class DashboardHomeController {
         loansCard.setVisible(!given.isEmpty() || !taken.isEmpty());
         if (!loansCard.isVisible()) return;
 
-        // totals sit next to the card heading: Given in green, Taken in red
         if (!given.isEmpty()) {
             BigDecimal total = BigDecimal.ZERO;
             for (LoanService.PersonSummary ps : given) total = total.add(ps.getLentRemaining());
@@ -493,7 +477,6 @@ public class DashboardHomeController {
         }
     }
 
-    /** One line per person; the given/taken/repaid breakdown is kept in a tooltip to save height. */
     private HBox buildLoanPersonRow(String name, BigDecimal remaining, String amountClass, String detail) {
         Label nameLabel = new Label(name);
         nameLabel.getStyleClass().add("dash-tx-title");
@@ -508,19 +491,7 @@ public class DashboardHomeController {
         return row;
     }
 
-    /**
-     * Each month's expense paid from accounts of the given type ("CASH" or "BANK") in the given
-     * year (index 0 = Jan), read from the {@code monthly_expense_overrides} table.
-     * <p>
-     * Behavior:
-     * - The CURRENT month (only when the current year is shown) is recalculated live from EXPENSE transactions (paid from an account of
-     *   this type) every time the dashboard loads, and that figure is auto-saved into the table -
-     *   unless the user has manually corrected this month's figure, in which case the manual
-     *   value wins and is left untouched.
-     * - Every OTHER month (past or future) is never recalculated - it simply shows whatever is
-     *   saved in the table (0 if nothing was ever saved for it). This is what makes a month
-     *   "freeze" once it's no longer current: only a manual ✎ edit can change it after that.
-     */
+    /** Monthly expense by account type. Only the current month is recalculated; other months show the saved value, so they freeze. */
     private MonthlyFigures loadMonthlyExpense(Long userId, List<Account> accounts, String typeName, int year) {
         LocalDate today = LocalDate.now();
         int currentMonth = year == today.getYear() ? today.getMonthValue() : -1;
@@ -543,13 +514,7 @@ public class DashboardHomeController {
         return expense;
     }
 
-    /**
-     * The Monthly Income & Expense card: one row per month of the current year with the columns
-     * Month | Income | Cash Expense | Bank Expense | Cash + Bank Expense | %, then Total and AVG.
-     * Income, Cash and Bank each have their own ↻ (recalculate from transactions - auto values only)
-     * and ✎ (save manually). Cash + Bank is the sum of the shown Cash and Bank figures, and
-     * % = (Cash + Bank) ÷ Income × 100.
-     */
+    /** % = (Cash + Bank) / Income * 100. */
     private void buildMonthlyIncomeExpenseTable(VBox container, MonthlyFigures income, MonthlyFigures cash,
                                                 MonthlyFigures bank, Long userId, List<Account> accounts, int year) {
         container.getChildren().clear();
@@ -597,7 +562,7 @@ public class DashboardHomeController {
                 avg(totalCombined), null, "dash-monthly-row-avg"));
     }
 
-    /** Total / AVG row. pctLabel is null for AVG (its % would just repeat Total's). */
+    /** pctLabel is null for AVG. */
     private HBox buildMonthlySummaryRow(String label, BigDecimal income, BigDecimal cash, BigDecimal bank,
                                         BigDecimal combined, Label pctLabel, String rowStyleClass) {
         return buildMonthlyColumnsRow(
@@ -610,8 +575,6 @@ public class DashboardHomeController {
                 rowStyleClass);
     }
 
-    /** One line of the card. The five value cells share the same preferred width and all grow
-     *  equally, so header, month and Total/AVG rows line up column by column. */
     private HBox buildMonthlyColumnsRow(Label month, HBox income, HBox cash, HBox bank, HBox combined, HBox pct,
                                         String rowStyleClass) {
         HBox row = new HBox(12, month, income, cash, bank, combined, pct);
@@ -620,8 +583,6 @@ public class DashboardHomeController {
         return row;
     }
 
-    /** An amount with its ↻ and ✎ buttons. ↻ only for auto-calculated figures; a manually saved one
-     *  keeps an invisible stand-in so the ✎ column stays aligned. */
     private HBox editableCell(BigDecimal amount, boolean manual, String what, Runnable onRecalculate, Runnable onEdit) {
         Label valueLabel = styledLabel(fmt(amount), manual ? "dash-monthly-value-saved" : "dash-card-label");
         if (manual) {
@@ -645,8 +606,6 @@ public class DashboardHomeController {
         return cell(valueLabel, recalcBtn, editBtn);
     }
 
-    /** A right-aligned value cell; buttonSpace adds invisible ↻ ✎ stand-ins so it lines up with
-     *  the editable cells of the same column. */
     private HBox cell(Label label, boolean buttonSpace) {
         return buttonSpace ? cell(label, hiddenButton("↻"), hiddenButton("✎")) : cell(label, null, null);
     }
@@ -677,7 +636,6 @@ public class DashboardHomeController {
         return label;
     }
 
-    /** Invisible stand-in that keeps a ↻/✎ button's width so columns stay aligned. */
     private Button hiddenButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("dash-monthly-edit-btn");
@@ -685,7 +643,6 @@ public class DashboardHomeController {
         return button;
     }
 
-    /** Shows old vs recalculated income and saves only if the user confirms. */
     private void handleRecalculateIncome(YearMonth ym, BigDecimal currentAmount, Long userId, List<Account> accounts) {
         BigDecimal recalculated = monthlyExpenseOverrideService.calculateIncome(userId, accounts, ym);
         if (recalculated.compareTo(currentAmount) == 0) {
@@ -731,7 +688,6 @@ public class DashboardHomeController {
         });
     }
 
-    /** Shows old vs recalculated figure and saves only if the user confirms. */
     private void handleRecalculateMonth(YearMonth ym, String typeName, BigDecimal currentAmount, Long userId, List<Account> accounts) {
         BigDecimal recalculated = transactionService.getEffectiveExpense(userId, accounts, typeName, ym.atDay(1), ym.atEndOfMonth());
         if (recalculated.compareTo(currentAmount) == 0) {
@@ -784,8 +740,7 @@ public class DashboardHomeController {
         alert.showAndWait();
     }
 
-    /** Expense as % of income, e.g. "57.66%" or "119.00%" (not capped at 100). "-" when there was
-     *  no income, since a % of zero is meaningless. Shown in red once expense exceeds income. */
+    /** "-" when there was no income. Not capped at 100. */
     private Label buildPctLabel(BigDecimal expense, BigDecimal income) {
         boolean hasIncome = income != null && income.compareTo(BigDecimal.ZERO) > 0;
         String text = hasIncome
@@ -802,7 +757,6 @@ public class DashboardHomeController {
         return total;
     }
 
-    /** 12-month average of a yearly total. */
     private BigDecimal avg(BigDecimal yearTotal) {
         return yearTotal.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
     }

@@ -4,36 +4,24 @@ import java.io.File;
 
 public interface IGoogleDriveService {
 
-    /** True once a successful OAuth2 connection has been established in this session. */
+    /** True after a successful OAuth2 connect in this session. */
     boolean isConnected();
 
-    /** True if a token from a previous connect() is stored on disk, so connect() can succeed
-     *  silently (no browser popup) without the user being present - used to gate automatic backups. */
+    /** True if a stored token lets connect() work without a browser; gates auto backups. */
     boolean hasStoredCredentials();
 
-    /** Runs the OAuth2 installed-app flow (opens the system browser) and stores the token for reuse. */
+    /** Runs the OAuth2 flow (opens the browser) and stores the token. */
     void connect() throws Exception;
 
-    /** Revokes the current Google account's token and clears the locally stored token, so the next connect() requires a fresh sign-in. */
+    /** Revokes the token and clears local state, so the next connect() needs sign-in. */
     void disconnect() throws Exception;
 
-    /**
-     * Uploads the given local dump file to the user's Google Drive root folder as backup_data.sql.
-     * @return a human-readable success message
-     */
+    /** Uploads the dump to the Drive folder as backup_data.sql. */
     String upload(File localDumpFile) throws Exception;
 
-    /**
-     * Downloads the most recently modified backup_data.sql found on Google Drive into targetFolder.
-     * @return the downloaded file
-     */
+    /** Downloads the latest backup_data.sql from Drive into targetFolder. */
     File downloadLatest(File targetFolder) throws Exception;
 
-    /**
-     * A ready-to-display description of the most recently uploaded backup in the app's Google
-     * Drive folder (e.g. "Last backup: 2026-09-20 11:21:32"), or "No backups found yet" if the
-     * folder is empty. Reads live from Drive rather than a local file, so it reflects the true
-     * latest backup even if it was uploaded from a different computer.
-     */
+    /** Display text for the latest backup on Drive, read live so other computers' uploads count. */
     String getLatestBackupDisplay() throws Exception;
 }

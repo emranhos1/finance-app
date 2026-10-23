@@ -75,16 +75,13 @@ public class ReportsController {
     @FXML private Label logPageLabel;
     @FXML private ComboBox<Integer> logPageSizeComboBox;
 
-    // page-wide filters (top bar) - applied to every section of this page
     @FXML private MenuButton accountFilterMenuButton;
     @FXML private DateRangeField filterDateRangeField;
     @FXML private ComboBox<String> filterRefTypeComboBox;
     @FXML private ComboBox<String> filterCategoryComboBox;
     private static final String ALL_REFERENCES = "All references";
     private static final String ALL_CATEGORIES = "All categories";
-    /** Category dropdown label -> category id (labels made unique when two categories share a name). */
     private final Map<String, Long> categoryIdsByLabel = new LinkedHashMap<>();
-    /** Used for the summary/category sums when no date range is picked. */
     private static final LocalDate ALL_TIME_START = LocalDate.of(1970, 1, 1);
     private static final LocalDate ALL_TIME_END = LocalDate.of(9999, 12, 31);
 
@@ -95,7 +92,6 @@ public class ReportsController {
     private static final List<Integer> PAGE_SIZE_OPTIONS = Arrays.asList(5, 10, 20, 50, 100);
     private int logCurrentPage = 0;
     private int logTotalPages = 1;
-    /** Transaction date for each log row on the current page (by transaction id). */
     private Map<Long, LocalDate> logTxDates = new java.util.HashMap<>();
 
     @FXML
@@ -125,23 +121,20 @@ public class ReportsController {
         refreshAll();
     }
 
-    /** Re-runs every section of the page with the current filters. */
     private void refreshAll() {
         loadReport();
         loadTrendChart();
         loadAccountLogPage(0);
     }
 
-    // ---------------------------------------------------------------- filters
 
     private void setupFilters() {
-        // default to the current month, as the old Start/End pickers did
         LocalDate today = LocalDate.now();
         filterDateRangeField.setRange(today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
 
         loadCategoryOptions();
         filterCategoryComboBox.setValue(ALL_CATEGORIES);
-        // reload on open so categories added since this tab was first shown also appear
+        // reload so new categories show up
         filterCategoryComboBox.setOnShowing(e -> loadCategoryOptions());
 
         List<String> refTypes = new ArrayList<>();
@@ -251,23 +244,18 @@ public class ReportsController {
         return cat == null ? null : categoryIdsByLabel.get(cat);
     }
 
-    /** Income counts unless the Reference filter picks something other than INCOME. */
     private boolean includeIncome() {
         AccountLog.ReferenceType ref = getSelectedReference();
         return ref == null || ref == AccountLog.ReferenceType.INCOME;
     }
 
-    /** Expense counts unless the Reference filter picks something other than EXPENSE. */
     private boolean includeExpense() {
         AccountLog.ReferenceType ref = getSelectedReference();
         return ref == null || ref == AccountLog.ReferenceType.EXPENSE;
     }
 
-    // ---------------------------------------------------------------- sections
 
-    /** Summary + Income/Expense by category + Account balances. Income is money received into the
-     *  selected accounts, expense is money paid from them; transfers and loans are never income or
-     *  expense. Balances are current balances, so only the account filter applies to them. */
+    /** Transfers and loans are never income or expense. Balances are current, only the account filter applies. */
     private void loadReport() {
         Long userId = sessionContext.getCurrentUserId();
         List<Long> accountIds = getSelectedAccountIds();
@@ -311,7 +299,6 @@ public class ReportsController {
         accountTable.setItems(FXCollections.observableArrayList(accountRows));
     }
 
-    /** Always the last 12 months; the account, reference and category filters apply. */
     private void loadTrendChart() {
         Long userId = sessionContext.getCurrentUserId();
         List<Long> accountIds = getSelectedAccountIds();
@@ -386,8 +373,7 @@ public class ReportsController {
         return transactionService.getDatesByIds(ids);
     }
 
-    /** The date a log row belongs to: its transaction's date (same date the Transaction tab and the
-     *  date filter use), or when the row was written if it has no transaction (manual/deleted). */
+    /** Transaction date, or the log time if the row has no transaction. */
     private static LocalDate logDate(AccountLog l, Map<Long, LocalDate> txDates) {
         LocalDate txDate = l.getReferenceId() != null ? txDates.get(l.getReferenceId()) : null;
         return txDate != null ? txDate : l.getCreatedAt().toLocalDate();
@@ -403,7 +389,6 @@ public class ReportsController {
         if (logCurrentPage < logTotalPages - 1) loadAccountLogPage(logCurrentPage + 1);
     }
 
-    /** Exports exactly what the filters show (all pages), grouped per account. */
     @FXML
     public void handleExportCSV() {
         List<Account> selectedAccounts = getSelectedAccounts();

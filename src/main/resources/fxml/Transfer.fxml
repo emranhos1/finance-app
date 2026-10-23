@@ -9,7 +9,7 @@
 
     <TabPane VBox.vgrow="ALWAYS">
 
-        <!-- ===== TAB 1: Transfer ===== -->
+        <!-- transfer tab -->
         <Tab text="Transfer" closable="false">
             <HBox spacing="15" styleClass="tab-content">
 
@@ -82,7 +82,7 @@
             </HBox>
         </Tab>
 
-        <!-- ===== TAB 2: Transfer Types ===== -->
+        <!-- transfer types tab -->
         <Tab text="Transfer Types" closable="false">
             <HBox spacing="15" styleClass="tab-content">
 

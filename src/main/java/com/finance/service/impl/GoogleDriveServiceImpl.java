@@ -189,7 +189,7 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         return "Last backup: " + modified.format(DISPLAY_FORMAT);
     }
 
-    /** Finds this app's dedicated "finance_app" Drive folder, creating it the first time if it doesn't exist yet. */
+    /** Gets the finance_app folder, creating it on first use. */
     private String getOrCreateAppFolderId() throws IOException {
         FileList result = driveService.files().list()
                 .setQ("mimeType = '" + FOLDER_MIME_TYPE + "' and name = '" + APP_FOLDER_NAME + "' and trashed = false")
@@ -210,12 +210,7 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         return folder.getId();
     }
 
-    /**
-     * credentials.json is never committed, so builds made by GitHub Actions don't contain it.
-     * On an installed PC the file is copied once by hand next to DFMS.exe (the install folder) -
-     * the update installer never deletes it. Falls back to the copy inside the jar, which is what
-     * a local developer build (mvn javafx:run) uses.
-     */
+    /** credentials.json isn't committed; looks next to DFMS.exe first, then the copy in the jar (dev runs). */
     private InputStream openCredentials() throws IOException {
         String appPath = System.getProperty("jpackage.app-path"); // set by the jpackage launcher (DFMS.exe)
         File[] candidates = {
@@ -244,9 +239,8 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
         AuthorizationCodeInstalledApp app = new AuthorizationCodeInstalledApp(flow, receiver, this::openBrowser);
 
-        // If the user closes the browser tab without finishing sign-in, authorize() blocks forever
-        // waiting on the local callback server, and that server keeps holding port 8888. Bound the
-        // wait so an abandoned attempt gives up on its own and frees the port for the next try.
+        // authorize() blocks forever if the user closes the browser tab and holds port 8888,
+        // so the wait is bounded
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "google-oauth-signin");
             t.setDaemon(true);
@@ -275,12 +269,8 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         }
     }
 
-    /**
-     * The library's default browse() only prints the URL to the console and swallows any failure,
-     * so on machines where Desktop.browse() doesn't work it hangs forever with no visible error.
-     * This opens the browser directly and falls back to an OS-specific command, throwing a clear
-     * error (surfaced in the UI) only if every attempt fails.
-     */
+    /** The library's browse() only prints the URL and hides failures; this tries Desktop, then OS commands,
+     *  and throws if all fail. */
     private void openBrowser(String url) throws IOException {
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             try {

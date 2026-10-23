@@ -91,8 +91,7 @@ public class AccountService {
                 .note(note).build());
     }
 
-    /** Filtered Account Log page; any filter argument may be null to mean "any". fromDate/toDate
-     *  are inclusive calendar days. */
+    /** Filtered Account Log page; null filter means any, dates inclusive. */
     public Page<AccountLog> searchAccountLogs(List<Long> accountIds, LocalDate fromDate, LocalDate toDate,
                                               AccountLog.ReferenceType referenceType, Long categoryId,
                                               Pageable pageable) {

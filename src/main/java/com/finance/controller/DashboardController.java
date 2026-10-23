@@ -97,8 +97,7 @@ public class DashboardController {
         setActiveButton(dashboardBtn);
     }
 
-    /** Called from the Dashboard's loan reminder toast so clicking it jumps straight to the
-     *  Loans sub-tab (index 2 of Transaction/Transfer/Loans) rather than just the Transaction page. */
+    /** Opens the Loans sub-tab (index 2) from the loan reminder toast. */
     public void goToLoansTab() {
         loadView("/fxml/Transactions.fxml");
         setActiveButton(transactionBtn);
@@ -106,7 +105,6 @@ public class DashboardController {
         if (tabPane != null) tabPane.getSelectionModel().select(2);
     }
 
-    /** Called from the Dashboard's FDR/DPS maturity reminder toast so clicking it jumps to the Accounts tab. */
     public void goToAccountsTab() {
         loadView("/fxml/Accounts.fxml");
         setActiveButton(accountsBtn);
@@ -159,8 +157,7 @@ public class DashboardController {
 
         dialog.getDialogPane().setContent(grid);
 
-        // Validate and save inside the Save button's event filter: consuming the event keeps the
-        // dialog open on an error, so the user can fix the field instead of reopening and retyping.
+        // consume the event on error so the dialog stays open
         boolean[] changed = {false};
         Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.addEventFilter(ActionEvent.ACTION, event -> {
@@ -201,8 +198,7 @@ public class DashboardController {
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.initStyle(StageStyle.UNDECORATED);
         dialog.getDialogPane().getButtonTypes().clear();
-        // A Dialog refuses dialog.close() unless it has a cancel-type button, so the Cancel button
-        // below did nothing. Add one and hide it - the popup's own buttons do the closing.
+        // Dialog only closes with a cancel-type button, so add a hidden one
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
         Node hiddenCancel = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         hiddenCancel.setVisible(false);
@@ -214,8 +210,7 @@ public class DashboardController {
 
         VBox content = new VBox(14);
         content.setPadding(new Insets(20));
-        // Undecorated dialogs have no native title bar, border or shadow, so without an explicit
-        // border here the popup visually blends into whatever page is open behind it.
+        // undecorated dialog has no border, so it blends into the page behind
         content.setStyle("-fx-background-color: white; -fx-border-color: #1B5446; -fx-border-width: 2; "
                 + "-fx-border-radius: 6; -fx-background-radius: 6; "
                 + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 20, 0.3, 0, 6);");
@@ -227,9 +222,7 @@ public class DashboardController {
         dialog.show();
     }
 
-    /** Asks every time whether to back up before logging out, rather than deciding silently based
-     *  on the auto-backup interval - the user wants to be asked and choose, not have the app skip
-     *  it quietly because it decided a backup wasn't "due" yet. */
+    /** Always asks about backup before logout, not based on the auto-backup interval. */
     private void showBackupPrompt(Dialog<Void> dialog, VBox content) {
         Label label = new Label("Back up your data to Google Drive before logging out?");
         label.setWrapText(true);
@@ -295,8 +288,7 @@ public class DashboardController {
                     "Check your internet connection and make sure you complete the sign-in in the browser tab that opened, then try again.",
                     () -> showConnecting(dialog, content));
         });
-        // stops waiting for the sign-in: the interrupt ends the sign-in attempt, which frees port 8888
-        // for the next try. A cancelled task runs neither handler above, so this never logs out.
+        // interrupt ends the sign-in attempt and frees port 8888; a cancelled task never logs out
         cancelBtn.setOnAction(e -> {
             countdown.stop();
             connectTask.cancel(true);
@@ -321,14 +313,13 @@ public class DashboardController {
                 return null;
             }
         };
-        // cancels the backup (nothing is uploaded unless the upload had already started) and stays
-        // logged in - a cancelled task runs neither the success nor the failure handler
+        // cancel stops the backup and stays logged in
         cancelBtn.setOnAction(e -> {
             backupTask.cancel(true);
             dialog.close();
         });
         backupTask.setOnSucceeded(e -> {
-            cancelBtn.setDisable(true); // already done - logging out now
+            cancelBtn.setDisable(true);
             statusLabel.setText("Now logging out...");
             PauseTransition pause = new PauseTransition(Duration.millis(700));
             pause.setOnFinished(ev -> closeDialogThenLogout(dialog));
@@ -337,7 +328,7 @@ public class DashboardController {
         backupTask.setOnFailed(e -> {
             Throwable ex = backupTask.getException();
             String reason = ex != null && ex.getMessage() != null ? ex.getMessage() : "Unknown error";
-            // a missing MySQL tool has nothing to do with the internet or Drive - don't send the user there
+            // a missing MySQL tool is not an internet/Drive problem
             boolean mysqlToolMissing = reason.contains(".exe was not found") || reason.startsWith("Could not start mysql");
             showFailure(dialog, content,
                     "Backup failed: " + reason,
@@ -354,9 +345,7 @@ public class DashboardController {
         thread.start();
     }
 
-    /** Swaps the popup's content for the next step and resizes the popup to fit it. A Dialog does not
-     *  resize itself when its content changes after it was first shown, so a longer step (e.g. a
-     *  backup error) would otherwise be cut off at the bottom, with its lines overlapping. */
+    /** Swaps the popup content and resizes it; a shown Dialog does not resize itself. */
     private void showStep(Dialog<Void> dialog, VBox content, Node... nodes) {
         content.getChildren().setAll(nodes);
         fitToContent(dialog, content);
@@ -364,12 +353,9 @@ public class DashboardController {
 
     private void fitToContent(Dialog<Void> dialog, VBox content) {
         Window window = dialog.getDialogPane().getScene().getWindow();
-        // before the first show(), the dialog sizes and centers itself
         if (window == null || !window.isShowing()) return;
         dialog.getDialogPane().applyCss();
-        // A window sizes to its scene by measuring heights without a width, which measures every
-        // wrapped label as one long line - the popup came out too short and longer text was cut off.
-        // Measure the content at its real width and pin that height before sizing the window.
+        // measure at the real width, otherwise wrapped labels get cut off
         content.setPrefHeight(Region.USE_COMPUTED_SIZE);
         content.setPrefHeight(content.prefHeight(content.getPrefWidth()));
         dialog.getDialogPane().layout();
@@ -385,8 +371,7 @@ public class DashboardController {
         Label reasonLabel = new Label(reason);
         reasonLabel.setWrapText(true);
         reasonLabel.getStyleClass().add("backup-status-error");
-        // the reason is the raw mysqldump / Google message and can be very long - scroll it instead of
-        // letting it push the buttons off the popup
+        // reason can be a very long mysqldump/Google message, so scroll it
         ScrollPane reasonScroll = new ScrollPane(reasonLabel);
         reasonScroll.setFitToWidth(true);
         reasonScroll.setStyle("-fx-background-color: transparent; -fx-background: white;");
@@ -407,15 +392,13 @@ public class DashboardController {
         showStep(dialog, content, reasonScroll, suggestionLabel,
                 new HBox(10, retryBtn, connectBtn), new HBox(10, skipBtn, cancelButton(dialog)));
 
-        // The scroll box would otherwise show only as many lines as an unwrapped label needs. Size it
-        // to the wrapped message (now that its font is known), up to 160px - longer text scrolls.
+        // fit the scroll box to the wrapped message, max 160px
         Insets in = content.getInsets();
         double labelWidth = content.getPrefWidth() - in.getLeft() - in.getRight() - 20; // room for the scroll bar
         reasonScroll.setPrefViewportHeight(Math.min(160, reasonLabel.prefHeight(labelWidth)));
         fitToContent(dialog, content);
     }
 
-    /** Closes the popup without logging out, so the user is never stuck in it (it is modal). */
     private Button cancelButton(Dialog<Void> dialog) {
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().add("btn-secondary");
@@ -423,11 +406,7 @@ public class DashboardController {
         return cancelBtn;
     }
 
-    /** Closing this dialog and then immediately resizing/re-showing its owner Stage (which is
-     *  what doLogout()'s showLoginScreen() does) in the very same event can race with Windows
-     *  still tearing down the modal dialog's native window, leaving stale pixels from both
-     *  windows on screen and the app looking frozen. Deferring doLogout() to the next pulse via
-     *  Platform.runLater gives the dialog's close a full pulse to finish first. */
+    /** Run doLogout() on the next pulse so the dialog window finishes closing first (stale pixels otherwise). */
     private void closeDialogThenLogout(Dialog<Void> dialog) {
         dialog.close();
         Platform.runLater(this::doLogout);
