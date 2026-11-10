@@ -35,14 +35,17 @@ Desktop app for tracking personal finances, built with Java 21, Spring Boot 2.7,
 
 ## Setup
 
-1. Set the database login in `src/main/resources/application.properties`:
+1. Set the database login in the profile file you use. `src/main/resources/application.properties` holds `spring.profiles.active` (default `dev`) and all common settings (jpa, admin, app). Each profile file holds only the database connection:
+   - `application-dev.properties`: test database `finance_test_db`.
+   - `application-prod.properties`: real database `finance_db_v2`.
    ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/finance_db?createDatabaseIfNotExist=true&...
+   spring.datasource.url=jdbc:mysql://localhost:3306/finance_test_db?createDatabaseIfNotExist=true&...
    spring.datasource.username=root
    spring.datasource.password=Your Password
    admin.username=admin
    admin.password=admin123
    ```
+   To switch, change `spring.profiles.active` in `application.properties`, or pass `-Dspring.profiles.active=prod` (this wins over the file). The installed app is built with `-Dspring.profiles.active=prod` (see `release.yml`).
 2. For Google Drive backup in a dev run, put your OAuth client file at `src/main/resources/credentials.json`. This path is git-ignored. Never commit it.
 3. Run the app:
    ```bash
