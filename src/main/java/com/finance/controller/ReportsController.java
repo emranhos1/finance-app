@@ -411,7 +411,7 @@ public class ReportsController {
         try (OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             fw.write("﻿"); // UTF-8 BOM so Excel detects the encoding and renders Bengali correctly
             for (Map.Entry<String, List<AccountLog>> entry : exportMap.entrySet()) {
-                fw.write("Account: " + entry.getKey() + "\n");
+                fw.write(csvEscape("Account: " + entry.getKey()) + "\n");
                 fw.write("Date,Change,Reference,Amount,Balance Before,Balance After,Note\n");
                 Map<Long, LocalDate> txDates = txDatesFor(entry.getValue());
                 for (AccountLog l : entry.getValue()) {
@@ -421,7 +421,7 @@ public class ReportsController {
                             + l.getAmount() + ","
                             + l.getBalanceBefore() + ","
                             + l.getBalanceAfter() + ","
-                            + (l.getNote() != null ? l.getNote().replace(",", ";") : "") + "\n");
+                            + csvEscape(l.getNote()) + "\n");
                 }
                 fw.write("\n");
             }
@@ -429,6 +429,19 @@ public class ReportsController {
         } catch (IOException e) {
             showAlert("Error", "Failed to export: " + e.getMessage());
         }
+    }
+
+    private static String csvEscape(String value) {
+        if (value == null || value.isEmpty()) return "";
+        String v = value;
+        char first = v.charAt(0);
+        if (first == '=' || first == '+' || first == '-' || first == '@' || first == '\t' || first == '\r') {
+            v = "'" + v;
+        }
+        if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0 || v.indexOf('\n') >= 0 || v.indexOf('\r') >= 0) {
+            v = "\"" + v.replace("\"", "\"\"") + "\"";
+        }
+        return v;
     }
 
     private void showAlert(String title, String message) {

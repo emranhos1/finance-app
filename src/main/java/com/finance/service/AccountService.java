@@ -6,6 +6,8 @@ import com.finance.entity.AccountType;
 import com.finance.repository.AccountLogRepository;
 import com.finance.repository.AccountRepository;
 import com.finance.repository.AccountTypeRepository;
+import com.finance.repository.LoanRepository;
+import com.finance.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,8 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final AccountTypeRepository accountTypeRepository;
     private final AccountLogRepository accountLogRepository;
+    private final TransactionRepository transactionRepository;
+    private final LoanRepository loanRepository;
 
     public Account createAccount(Long userId, String name, Long accountTypeId, BigDecimal initialBalance,
                                  LocalDate maturityDate, BigDecimal installmentAmount, BigDecimal lowBalanceThreshold) {
@@ -105,7 +109,19 @@ public class AccountService {
         return accountRepository.sumBalanceByUserIdAndAccountType(userId, accountType);
     }
 
-    public void deleteAccount(Long accountId) {
+    /** Refuses to delete an account that still has transactions, loans or a balance, so no record is left without its account. */
+    public void deleteAccount(Long accountId, Long userId) {
+        Account account = getAccountById(accountId);
+        if (!account.getUserId().equals(userId)) throw new SecurityException("Access denied");
+        if (transactionRepository.existsByFromAccountIdOrToAccountId(accountId, accountId))
+            throw new IllegalArgumentException("Cannot delete '" + account.getName()
+                    + "' - it has transactions. Delete or move them first.");
+        if (loanRepository.existsByAccountId(accountId))
+            throw new IllegalArgumentException("Cannot delete '" + account.getName()
+                    + "' - it is used by a loan. Delete the loan first.");
+        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0)
+            throw new IllegalArgumentException("Cannot delete '" + account.getName() + "' - its balance is ৳ "
+                    + account.getBalance().toPlainString() + ". Move the money out first.");
         accountRepository.deleteById(accountId);
     }
 

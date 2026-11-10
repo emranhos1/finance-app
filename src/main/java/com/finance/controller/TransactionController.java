@@ -492,6 +492,11 @@ public class TransactionController {
         if (tx.getCategoryId() != null) categoryComboBox.getItems().stream()
                 .filter(c -> c.getId().equals(tx.getCategoryId())).findFirst().ifPresent(categoryComboBox::setValue);
 
+        // update only changes date, amount, category and note, so type and account are locked while editing
+        incomeRadio.setDisable(true);
+        expenseRadio.setDisable(true);
+        accountComboBox.setDisable(true);
+
         saveTransactionBtn.setVisible(false);
         saveTransactionBtn.setManaged(false);
         txEditButtons.setVisible(true);
@@ -501,7 +506,7 @@ public class TransactionController {
     @FXML
     public void handleSaveTransaction() {
         String type = getSelectedType();
-        LocalDate date = datePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(datePicker);
         String amountStr = amountField.getText().trim();
         Account account = accountComboBox.getValue();
         Category category = categoryComboBox.getValue();
@@ -530,7 +535,7 @@ public class TransactionController {
     public void handleUpdateTransaction() {
         if (selectedTransaction == null) return;
         String type = getSelectedType();
-        LocalDate date = datePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(datePicker);
         String amountStr = amountField.getText().trim();
         Account account = accountComboBox.getValue();
         Category category = categoryComboBox.getValue();
@@ -593,6 +598,9 @@ public class TransactionController {
 
     private void resetTransactionForm() {
         selectedTransaction = null;
+        incomeRadio.setDisable(false);
+        expenseRadio.setDisable(false);
+        accountComboBox.setDisable(false);
         typeToggleGroup.selectToggle(null);
         datePicker.setValue(LocalDate.now());
         amountField.clear();

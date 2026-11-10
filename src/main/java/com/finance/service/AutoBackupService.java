@@ -22,13 +22,17 @@ public class AutoBackupService {
     /** Exports the DB and uploads to Drive. Throws on failure so the caller can show the reason. */
     public void performBackup() throws Exception {
         File tempDir = new File(System.getProperty("java.io.tmpdir"));
-        String localPath = backupService.exportToLocal(tempDir);
-        // Cancel in the logout popup interrupts this thread - stop here rather than upload anyway
-        if (Thread.currentThread().isInterrupted()) {
-            new File(localPath).delete();
-            throw new InterruptedException("Backup cancelled");
+        File dump = new File(backupService.exportToLocal(tempDir));
+        try {
+            // Cancel in the logout popup interrupts this thread - stop here rather than upload anyway
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("Backup cancelled");
+            }
+            googleDriveService.upload(dump);
+            log.info("Backup completed and uploaded to Google Drive");
+        } finally {
+            // the dump holds the whole DB including password hashes; never leave it in temp
+            dump.delete();
         }
-        googleDriveService.upload(new File(localPath));
-        log.info("Backup completed and uploaded to Google Drive");
     }
 }

@@ -22,6 +22,9 @@ public interface IGoogleDriveService {
     /** Downloads the latest backup_data.sql from Drive into targetFolder. */
     File downloadLatest(File targetFolder) throws Exception;
 
+    /** Email of the connected Google account, or "unknown account" if it could not be read. */
+    String getConnectedEmail();
+
     /** Display text for the latest backup on Drive, read live so other computers' uploads count. */
     String getLatestBackupDisplay() throws Exception;
 }

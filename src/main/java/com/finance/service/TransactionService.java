@@ -37,6 +37,7 @@ public class TransactionService {
 
     public Transaction recordIncomeTransaction(Long userId, LocalDate date, BigDecimal amount,
                                                Long toAccountId, Long categoryId, Long transferTypeId, String note) {
+        requirePositiveAmount(amount);
         Account toAccount = accountRepository.findById(toAccountId)
                 .orElseThrow(() -> new IllegalArgumentException("To account not found"));
         if (!toAccount.getUserId().equals(userId)) throw new IllegalArgumentException("Account does not belong to user");
@@ -62,6 +63,7 @@ public class TransactionService {
 
     public Transaction recordExpenseTransaction(Long userId, LocalDate date, BigDecimal amount,
                                                 Long fromAccountId, Long categoryId, Long transferTypeId, String note) {
+        requirePositiveAmount(amount);
         Account fromAccount = accountRepository.findById(fromAccountId)
                 .orElseThrow(() -> new IllegalArgumentException("From account not found"));
         if (!fromAccount.getUserId().equals(userId)) throw new IllegalArgumentException("Account does not belong to user");
@@ -86,6 +88,7 @@ public class TransactionService {
 
     public Transaction recordTransferTransaction(Long userId, LocalDate date, BigDecimal amount,
                                                  Long fromAccountId, Long toAccountId, Long transferTypeId, String note) {
+        requirePositiveAmount(amount);
         Account fromAccount = accountRepository.findById(fromAccountId)
                 .orElseThrow(() -> new IllegalArgumentException("From account not found"));
         Account toAccount = accountRepository.findById(toAccountId)
@@ -122,6 +125,7 @@ public class TransactionService {
 
     public Transaction updateTransaction(Long transactionId, Long userId, LocalDate date,
                                          BigDecimal newAmount, Long categoryId, Long transferTypeId, String note) {
+        requirePositiveAmount(newAmount);
         Transaction tx = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
         if (!tx.getUserId().equals(userId)) throw new IllegalArgumentException("Access denied");
@@ -130,11 +134,23 @@ public class TransactionService {
                     + "). Edit or delete it from the Loans tab instead, so the loan record stays in sync.");
         });
 
+        if (tx.getLoanId() != null) {
+            loanRepository.findById(tx.getLoanId()).ifPresent(loan -> {
+                BigDecimal newTotalRepaid = transactionRepository.sumAmountByLoanId(loan.getId())
+                        .subtract(tx.getAmount()).add(newAmount);
+                if (newTotalRepaid.compareTo(loan.getPrincipalAmount()) > 0) {
+                    throw new IllegalArgumentException("Total repaid (৳ " + newTotalRepaid.toPlainString()
+                            + ") would exceed the loan amount (৳ " + loan.getPrincipalAmount().toPlainString() + ")");
+                }
+            });
+        }
+
         BigDecimal diff = newAmount.subtract(tx.getAmount());
 
         if (tx.getType() == Transaction.TransactionType.INCOME) {
             Account acc = accountRepository.findById(tx.getToAccountId()).orElseThrow();
             BigDecimal before = acc.getBalance();
+            requireNotNegative(acc, before.add(diff));
             acc.setBalance(before.add(diff));
             accountRepository.save(acc);
             accountService.logBalanceChange(acc.getId(), userId, before, acc.getBalance(),
@@ -161,6 +177,7 @@ public class TransactionService {
                 throw new IllegalArgumentException("Insufficient balance in '" + from.getName() + "' (available: \u09f3 "
                         + fromBefore.toPlainString() + ")");
             }
+            requireNotNegative(to, toBefore.add(diff));
             from.setBalance(fromAfter);
             to.setBalance(toBefore.add(diff));
             accountRepository.save(from);
@@ -193,6 +210,7 @@ public class TransactionService {
         if (tx.getType() == Transaction.TransactionType.INCOME && tx.getToAccountId() != null) {
             accountRepository.findById(tx.getToAccountId()).ifPresent(acc -> {
                 BigDecimal before = acc.getBalance();
+                requireNotNegative(acc, before.subtract(tx.getAmount()));
                 acc.setBalance(before.subtract(tx.getAmount()));
                 accountRepository.save(acc);
                 accountService.logBalanceChange(acc.getId(), userId, before, acc.getBalance(),
@@ -216,6 +234,7 @@ public class TransactionService {
             });
             if (tx.getToAccountId() != null) accountRepository.findById(tx.getToAccountId()).ifPresent(acc -> {
                 BigDecimal before = acc.getBalance();
+                requireNotNegative(acc, before.subtract(tx.getAmount()));
                 acc.setBalance(before.subtract(tx.getAmount()));
                 accountRepository.save(acc);
                 accountService.logBalanceChange(acc.getId(), userId, before, acc.getBalance(),
@@ -225,6 +244,19 @@ public class TransactionService {
         Long linkedLoanId = tx.getLoanId();
         transactionRepository.deleteById(transactionId);
         syncLoanStatus(linkedLoanId);
+    }
+
+    private void requirePositiveAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+    }
+
+    private void requireNotNegative(Account account, BigDecimal balanceAfter) {
+        if (balanceAfter.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Insufficient balance in '" + account.getName() + "' (available: ৳ "
+                    + account.getBalance().toPlainString() + ")");
+        }
     }
 
     /** Re-syncs a loan's OPEN/SETTLED status after a repayment is edited or deleted from the Transaction tab. */
@@ -277,12 +309,12 @@ public class TransactionService {
 
     public BigDecimal getExpenseByCategoryForAccounts(Long userId, Long categoryId, List<Long> accountIds, LocalDate startDate, LocalDate endDate) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
-        return transactionRepository.sumExpenseByCategoryAndFromAccountIds(userId, categoryId, accountIds, startDate, endDate);
+        return transactionRepository.sumExpenseByCategoryAndFromAccountIds(userId, Transaction.TransactionType.EXPENSE, categoryId, accountIds, startDate, endDate);
     }
 
     public BigDecimal getExpenseByAccountIds(Long userId, List<Long> accountIds, LocalDate startDate, LocalDate endDate) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
-        return transactionRepository.sumExpenseByFromAccountIdsAndDateRange(userId, accountIds, startDate, endDate);
+        return transactionRepository.sumExpenseByFromAccountIdsAndDateRange(userId, Transaction.TransactionType.EXPENSE, accountIds, startDate, endDate);
     }
 
     public LocalDate getEarliestTransactionDate(Long userId) {
@@ -291,7 +323,7 @@ public class TransactionService {
 
     public BigDecimal getIncomeByAccountIds(Long userId, List<Long> accountIds, LocalDate startDate, LocalDate endDate) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
-        return transactionRepository.sumIncomeByToAccountIdsAndDateRange(userId, accountIds, startDate, endDate);
+        return transactionRepository.sumIncomeByToAccountIdsAndDateRange(userId, Transaction.TransactionType.INCOME, accountIds, startDate, endDate);
     }
 
     /** Expense for an account type in a date range. Transfers between own accounts are not counted. */
@@ -306,13 +338,13 @@ public class TransactionService {
     /** Reports tab: income into the given accounts, optionally limited to one category (null = any). */
     public BigDecimal getIncomeFiltered(Long userId, List<Long> accountIds, Long categoryId, LocalDate start, LocalDate end) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
-        return transactionRepository.sumIncomeFiltered(userId, accountIds, categoryId, start, end);
+        return transactionRepository.sumIncomeFiltered(userId, Transaction.TransactionType.INCOME, accountIds, categoryId, start, end);
     }
 
     /** Reports tab: expense from the given accounts, optionally limited to one category (null = any). */
     public BigDecimal getExpenseFiltered(Long userId, List<Long> accountIds, Long categoryId, LocalDate start, LocalDate end) {
         if (accountIds == null || accountIds.isEmpty()) return BigDecimal.ZERO;
-        return transactionRepository.sumExpenseFiltered(userId, accountIds, categoryId, start, end);
+        return transactionRepository.sumExpenseFiltered(userId, Transaction.TransactionType.EXPENSE, accountIds, categoryId, start, end);
     }
 
     /** Transaction id -> date, for Account Log rows. */

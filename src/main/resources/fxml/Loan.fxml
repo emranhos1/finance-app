@@ -29,6 +29,9 @@
                                       GridPane.columnIndex="0" GridPane.rowIndex="1"/>
                             <ComboBox fx:id="accountComboBox" maxWidth="Infinity" minWidth="0"
                                       GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                            <Label fx:id="accountBalanceLabel" text="" wrapText="true" minWidth="0"
+                                   style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"
+                                   GridPane.columnIndex="1" GridPane.rowIndex="2"/>
                         </GridPane>
 
                         <Label text="Type"/>

@@ -193,7 +193,9 @@ public class DashboardHomeController {
         String message = lowAccounts.size() == 1
                 ? first.getName() + " balance (৳ " + first.getBalance().toPlainString()
                         + ") is below your ৳ " + first.getLowBalanceThreshold().toPlainString() + " alert — check the Accounts tab."
-                : lowAccounts.size() + " accounts are below their low-balance alert — check the Accounts tab.";
+                : lowAccounts.size() + " accounts are below their low-balance alert: "
+                        + lowAccounts.stream().map(Account::getName).collect(java.util.stream.Collectors.joining(", "))
+                        + " — check the Accounts tab.";
         lowBalanceReminderLabel.setText(message);
         lowBalanceReminderBanner.setVisible(true);
         lowBalanceReminderBanner.setManaged(true);

@@ -60,6 +60,7 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
 
     private Drive driveService;
     private Credential currentCredential;
+    private volatile String connectedEmail;
 
     @Override
     public boolean isConnected() {
@@ -81,6 +82,22 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
                 .setApplicationName(APPLICATION_NAME)
                 .build();
         currentCredential = credential;
+        connectedEmail = readEmail();
+    }
+
+    private String readEmail() {
+        try {
+            com.google.api.services.drive.model.About about = driveService.about().get().setFields("user(emailAddress)").execute();
+            String email = about.getUser() == null ? null : about.getUser().getEmailAddress();
+            return email == null || email.isBlank() ? null : email;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public String getConnectedEmail() {
+        return connectedEmail == null ? "unknown account" : connectedEmail;
     }
 
     @Override
@@ -99,6 +116,7 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         deleteStoredTokens();
         currentCredential = null;
         driveService = null;
+        connectedEmail = null;
     }
 
     private void revokeToken(String token) throws IOException {
@@ -160,9 +178,14 @@ public class GoogleDriveServiceImpl implements IGoogleDriveService {
         }
         com.google.api.services.drive.model.File latest = files.get(0);
 
-        File outputFile = new File(targetFolder, latest.getName());
+        // keep only the file-name part so a name like "..\x.sql" cannot write outside targetFolder
+        String safeName = java.nio.file.Paths.get(latest.getName()).getFileName().toString();
+        File outputFile = new File(targetFolder, safeName);
         try (OutputStream out = new FileOutputStream(outputFile)) {
             driveService.files().get(latest.getId()).executeMediaAndDownloadTo(out);
+        } catch (Exception e) {
+            outputFile.delete(); // do not leave a half-downloaded dump in temp
+            throw e;
         }
         return outputFile;
     }

@@ -20,9 +20,11 @@
 
                     <Label text="From Account"/>
                     <ComboBox fx:id="fromAccountComboBox" maxWidth="Infinity"/>
+                    <Label fx:id="fromBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
 
                     <Label text="To Account"/>
                     <ComboBox fx:id="toAccountComboBox" maxWidth="Infinity"/>
+                    <Label fx:id="toBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
 
                     <Label text="Transfer Type"/>
                     <ComboBox fx:id="transferTypeComboBox" maxWidth="Infinity"/>

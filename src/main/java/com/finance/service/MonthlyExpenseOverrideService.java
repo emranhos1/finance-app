@@ -179,11 +179,17 @@ public class MonthlyExpenseOverrideService {
         log.info("Monthly income backfill check completed");
     }
 
-    /** Writes income to both CASH and BANK rows, creating a row with 0 expense if missing. */
+    /** Writes income to both CASH and BANK rows; a missing row gets the real expense of that month (not 0). */
     private void writeIncome(Long userId, int year, int month, BigDecimal amount, boolean manual) {
+        List<Account> accounts = null;
+        YearMonth ym = YearMonth.of(year, month);
         for (String typeName : TRACKED_ACCOUNT_TYPES) {
             MonthlyExpenseOverride record = findOrNew(userId, typeName, year, month);
-            if (record.getAmount() == null) record.setAmount(BigDecimal.ZERO);
+            if (record.getAmount() == null) {
+                if (accounts == null) accounts = accountService.getAccountsByUserId(userId);
+                record.setAmount(transactionService.getEffectiveExpense(
+                        userId, accounts, typeName, ym.atDay(1), ym.atEndOfMonth()));
+            }
             record.setIncomeAmount(amount);
             record.setIsIncomeManual(manual);
             monthlyExpenseOverrideRepository.save(record);

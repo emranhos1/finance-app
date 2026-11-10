@@ -43,6 +43,7 @@ public class LoanController {
     @FXML private RadioButton lentRadio;
     @FXML private RadioButton borrowedRadio;
     @FXML private ComboBox<Account> accountComboBox;
+    @FXML private Label accountBalanceLabel;
     @FXML private ComboBox<TransferType> transferTypeComboBox;
     @FXML private ComboBox<Category> categoryComboBox;
     @FXML private TextField amountField;
@@ -120,6 +121,8 @@ public class LoanController {
         };
         accountComboBox.setConverter(converter);
         repayAccountComboBox.setConverter(converter);
+        accountComboBox.valueProperty().addListener((obs, o, selected) -> accountBalanceLabel.setText(
+                selected == null ? "" : "Available balance: ৳ " + selected.getBalance().toPlainString()));
     }
 
     private void setupPersonComboBox() {
@@ -278,8 +281,8 @@ public class LoanController {
         TransferType transferType = transferTypeComboBox.getValue();
         Category category = categoryComboBox.getValue();
         String amountStr = amountField.getText().trim();
-        LocalDate date = datePicker.getValue();
-        LocalDate dueDate = dueDatePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(datePicker);
+        LocalDate dueDate = com.finance.util.DatePickerUtil.readDate(dueDatePicker);
         String note = noteArea.getText().trim();
 
         if (person == null || account == null || amountStr.isEmpty() || date == null) {
@@ -375,7 +378,7 @@ public class LoanController {
         if (selectedLoan == null) return;
         String amountStr = repayAmountField.getText().trim();
         Account account = repayAccountComboBox.getValue();
-        LocalDate date = repayDatePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(repayDatePicker);
         String note = repayNoteField.getText().trim();
 
         if (amountStr.isEmpty() || account == null || date == null) {

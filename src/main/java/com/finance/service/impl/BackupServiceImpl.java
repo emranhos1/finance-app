@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,6 +65,7 @@ public class BackupServiceImpl implements IBackupService {
                 resolveMysqlCommand("mysqldump"),
                 "-h", conn[0],
                 "-P", conn[1],
+                "--single-transaction",
                 "-u", dbUsername,
                 conn[2]
         );
@@ -76,12 +78,13 @@ public class BackupServiceImpl implements IBackupService {
             throw new Exception("Could not start mysqldump: " + e.getMessage());
         }
 
+        CompletableFuture<String> errors = drainErrors(process);
         try (InputStream in = process.getInputStream();
              OutputStream out = new FileOutputStream(outputFile)) {
             in.transferTo(out);
         }
-        String errorOutput = readStream(process.getErrorStream());
         int exitCode = process.waitFor();
+        String errorOutput = errors.get();
 
         if (exitCode != 0) {
             outputFile.delete();
@@ -116,12 +119,13 @@ public class BackupServiceImpl implements IBackupService {
             throw new Exception("Could not start mysql: " + e.getMessage());
         }
 
+        CompletableFuture<String> errors = drainErrors(process);
         try (InputStream fileIn = new FileInputStream(sqlFile);
              OutputStream procIn = process.getOutputStream()) {
             fileIn.transferTo(procIn);
         }
-        String errorOutput = readStream(process.getErrorStream());
         int exitCode = process.waitFor();
+        String errorOutput = errors.get();
 
         if (exitCode != 0) {
             throw new Exception("mysql import failed: " + (errorOutput.isBlank() ? "exit code " + exitCode : errorOutput.trim()));
@@ -245,6 +249,17 @@ public class BackupServiceImpl implements IBackupService {
             throw new Exception("Could not parse database connection details from application.properties");
         }
         return new String[]{m.group(1), m.group(2), m.group(3)};
+    }
+
+    /** Reads stderr on another thread so a full pipe can't block the process while stdout/stdin is being handled. */
+    private CompletableFuture<String> drainErrors(Process process) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return readStream(process.getErrorStream());
+            } catch (IOException e) {
+                return "";
+            }
+        });
     }
 
     private String readStream(InputStream in) throws IOException {
