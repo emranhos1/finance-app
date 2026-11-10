@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -42,9 +44,7 @@ public class UserService {
         return userRepository.save(builder.build());
     }
 
-    /** Lets an admin (or the user themselves, if such a screen is ever added) set/replace the
-     *  security question for an account that doesn't have one yet - e.g. accounts created before
-     *  this feature existed. */
+    /** Sets the security question for accounts that don't have one yet. */
     public void setSecurityQuestion(Long userId, String question, String answer) {
         if (question == null || question.trim().isEmpty() || answer == null || answer.trim().isEmpty())
             throw new IllegalArgumentException("Security question and answer are required");
@@ -55,19 +55,43 @@ public class UserService {
         userRepository.save(user);
     }
 
-    /** Null/empty if this account has no security question set - self-service reset must be
-     *  refused in that case rather than falling back to an unguarded reset. */
+    /** Null/empty means no question set; reject self-service reset then. */
     public String getSecurityQuestion(String username) {
         return userRepository.findByUsername(username)
                 .map(User::getSecurityQuestion)
                 .orElse(null);
     }
 
+    /** Wrong answers per username; after MAX_WRONG_ANSWERS the username is locked for LOCK_SECONDS. Kept in memory. */
+    private static final int MAX_WRONG_ANSWERS = 5;
+    private static final long LOCK_SECONDS = 30;
+    private final Map<String, int[]> wrongAnswers = new ConcurrentHashMap<>();
+    private final Map<String, Long> lockedUntil = new ConcurrentHashMap<>();
+
+    /** Throws IllegalStateException while the username is locked after too many wrong answers. */
     public boolean verifySecurityAnswer(String username, String answer) {
-        return userRepository.findByUsername(username)
+        Long until = lockedUntil.get(username);
+        if (until != null) {
+            long left = (until - System.currentTimeMillis() + 999) / 1000;
+            if (left > 0) {
+                throw new IllegalStateException("Too many wrong answers. Try again in " + left + " seconds.");
+            }
+            lockedUntil.remove(username);
+            wrongAnswers.remove(username);
+        }
+
+        boolean correct = userRepository.findByUsername(username)
                 .filter(user -> user.getSecurityAnswerHash() != null)
                 .filter(user -> passwordEncoder.matches(normalizeAnswer(answer == null ? "" : answer), user.getSecurityAnswerHash()))
                 .isPresent();
+
+        if (correct) {
+            wrongAnswers.remove(username);
+        } else if (wrongAnswers.computeIfAbsent(username, k -> new int[1])[0]++ + 1 >= MAX_WRONG_ANSWERS) {
+            lockedUntil.put(username, System.currentTimeMillis() + LOCK_SECONDS * 1000);
+            wrongAnswers.remove(username);
+        }
+        return correct;
     }
 
     private String normalizeAnswer(String answer) {
@@ -96,16 +120,15 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    /** Self-service password change for a logged-in user - requires the current password,
-     *  unlike resetPassword() which is used by the security-question recovery flow. */
+    /** Password change for a logged-in user; needs the current password. */
     public void changePassword(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (!passwordEncoder.matches(currentPassword == null ? "" : currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
-        if (newPassword == null || newPassword.length() < 4) {
-            throw new IllegalArgumentException("New password must be at least 4 characters");
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("New password must be at least 6 characters");
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);

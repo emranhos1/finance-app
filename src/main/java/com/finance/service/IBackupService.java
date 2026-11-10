@@ -4,15 +4,9 @@ import java.io.File;
 
 public interface IBackupService {
 
-    /**
-     * Runs mysqldump and writes the output as backup_data.sql inside targetFolder.
-     * @return the absolute path of the created backup file
-     */
+    /** Runs mysqldump into backup_data.sql in targetFolder; returns its path. */
     String exportToLocal(File targetFolder) throws Exception;
 
-    /**
-     * Runs mysql to import the given .sql file into the configured database.
-     * @return a human-readable success message
-     */
+    /** Imports the .sql file into the configured database. */
     String importFromLocal(File sqlFile) throws Exception;
 }

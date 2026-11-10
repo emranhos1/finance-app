@@ -88,16 +88,21 @@ public class ForgotPasswordController {
             showMessage("Please fill in all fields.");
             return;
         }
-        if (newPassword.length() < 4) {
-            showMessage("New password must be at least 4 characters.");
+        if (newPassword.length() < 6) {
+            showMessage("New password must be at least 6 characters.");
             return;
         }
         if (!newPassword.equals(confirmPassword)) {
             showMessage("Passwords do not match.");
             return;
         }
-        if (!userService.verifySecurityAnswer(verifiedUsername, answer)) {
-            showMessage("Incorrect answer to the security question.");
+        try {
+            if (!userService.verifySecurityAnswer(verifiedUsername, answer)) {
+                showMessage("Incorrect answer to the security question.");
+                return;
+            }
+        } catch (IllegalStateException e) {
+            showMessage(e.getMessage());
             return;
         }
 

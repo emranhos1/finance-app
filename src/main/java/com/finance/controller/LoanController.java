@@ -43,6 +43,7 @@ public class LoanController {
     @FXML private RadioButton lentRadio;
     @FXML private RadioButton borrowedRadio;
     @FXML private ComboBox<Account> accountComboBox;
+    @FXML private Label accountBalanceLabel;
     @FXML private ComboBox<TransferType> transferTypeComboBox;
     @FXML private ComboBox<Category> categoryComboBox;
     @FXML private TextField amountField;
@@ -120,6 +121,8 @@ public class LoanController {
         };
         accountComboBox.setConverter(converter);
         repayAccountComboBox.setConverter(converter);
+        accountComboBox.valueProperty().addListener((obs, o, selected) -> accountBalanceLabel.setText(
+                selected == null ? "" : "Available balance: ৳ " + selected.getBalance().toPlainString()));
     }
 
     private void setupPersonComboBox() {
@@ -278,8 +281,8 @@ public class LoanController {
         TransferType transferType = transferTypeComboBox.getValue();
         Category category = categoryComboBox.getValue();
         String amountStr = amountField.getText().trim();
-        LocalDate date = datePicker.getValue();
-        LocalDate dueDate = dueDatePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(datePicker);
+        LocalDate dueDate = com.finance.util.DatePickerUtil.readDate(dueDatePicker);
         String note = noteArea.getText().trim();
 
         if (person == null || account == null || amountStr.isEmpty() || date == null) {
@@ -295,10 +298,7 @@ public class LoanController {
         Long transferTypeId = transferType == null ? null : transferType.getId();
         Long categoryId = category == null ? null : category.getId();
 
-        // If this person already owes the opposite direction (e.g. saving "I Took" money while
-        // they still have open "I Gave" loans owed to the user), this payment is most likely
-        // settling that old debt rather than being an unrelated new loan - ask instead of silently
-        // creating a look-alike, unrelated loan next to debt that never gets marked repaid.
+        // same person owes the other direction: this is likely settling that debt, so ask first
         Loan.LoanType oppositeType = (type == Loan.LoanType.LENT) ? Loan.LoanType.BORROWED : Loan.LoanType.LENT;
         List<Loan> openOpposite = new ArrayList<>();
         for (Loan loan : loanService.getLoansByPerson(sessionContext.getCurrentUserId(), person.getId())) {
@@ -358,7 +358,6 @@ public class LoanController {
                 }
                 return;
             }
-            // else: user chose "Record as New Loan" - fall through to the normal create-loan flow below
         } else {
             if (!confirm("Save this loan entry?")) return;
         }
@@ -379,7 +378,7 @@ public class LoanController {
         if (selectedLoan == null) return;
         String amountStr = repayAmountField.getText().trim();
         Account account = repayAccountComboBox.getValue();
-        LocalDate date = repayDatePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(repayDatePicker);
         String note = repayNoteField.getText().trim();
 
         if (amountStr.isEmpty() || account == null || date == null) {
@@ -549,8 +548,7 @@ public class LoanController {
         a.showAndWait();
     }
 
-    /** Alert's default contentText can clip long or multi-line messages instead of resizing to fit -
-     *  using a wrapped Label as the dialog's content guarantees the full text is always visible. */
+    /** Wrapped Label so long messages are not clipped. */
     private void setWrappedContent(Alert alert, String msg) {
         Label label = new Label(msg);
         label.setWrapText(true);

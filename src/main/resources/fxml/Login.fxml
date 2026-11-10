@@ -17,7 +17,7 @@
       fx:controller="com.finance.controller.LoginController"
       alignment="CENTER" spacing="8" style="-fx-padding: 15 45 15 45;">
 
-    <!-- Shown only when GitHub has a newer release (checked in the background on open) -->
+    <!-- shown only when a newer release exists -->
     <VBox fx:id="updateBanner" spacing="4" visible="false" managed="false"
           style="-fx-background-color: #FFF4D6; -fx-border-color: #E8C46A; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8;">
         <Label fx:id="updateLabel" wrapText="true" style="-fx-font-weight: bold;"/>
@@ -25,7 +25,7 @@
             <Button fx:id="updateButton" text="Update now" styleClass="btn-primary" onAction="#handleUpdate"/>
             <Hyperlink text="What's new?" onAction="#handleShowReleaseNotes"/>
         </HBox>
-        <!-- fixed height: the login window is not resizable, so without it the bar gets squeezed to a thin line -->
+        <!-- fixed height, the window is not resizable and the bar gets squeezed without it -->
         <ProgressBar fx:id="updateProgress" maxWidth="Infinity" minHeight="14" prefHeight="14" visible="false" managed="false"/>
     </VBox>
 

@@ -29,14 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/**
- * Simple in-memory calculator tool.
- * User picks a date range + category; clicking + Add or - Subtract lists every
- * transaction of that category in the range, day-wise, as its own table row
- * (with a dedicated Note column) and keeps a running total. Everything here is
- * READ-ONLY against TransactionService/CategoryService - nothing is written
- * back to the database.
- */
+/** Read-only calculator over transactions in a date range and category. */
 @Controller
 @RequiredArgsConstructor
 public class CalculatorController {
@@ -95,7 +88,6 @@ public class CalculatorController {
     private final ObservableList<CalcEntry> entries = FXCollections.observableArrayList();
     private double runningTotal = 0.0;
 
-    /** Transactions for the currently selected date range, cached so Add/Subtract doesn't re-query. */
     private List<Transaction> transactionsInRange = new ArrayList<>();
 
     @FXML
@@ -123,7 +115,6 @@ public class CalculatorController {
         updateTotalLabel();
     }
 
-    /** Read-only: loads categories that have transactions within the selected date range. */
     private void loadCategoriesForDateRange() {
         LocalDate start = startDatePicker.getValue();
         LocalDate end = endDatePicker.getValue();
@@ -166,7 +157,6 @@ public class CalculatorController {
                 ? "No categories in this range" : "— Select Category —");
     }
 
-    /** Adds every transaction of the selected category (within the range) as its own day-wise table row. */
     private void handleAddCategoryEntries(boolean isAddition) {
         hideError();
         Category selected = categoryComboBox.getValue();
@@ -242,7 +232,6 @@ public class CalculatorController {
         errorLabel.setManaged(false);
     }
 
-    /** Row model for the calculator table. Plain in-memory holder, not a JPA entity. */
     @Getter
     public static class CalcEntry {
         private final String dateText;

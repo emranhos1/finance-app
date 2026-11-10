@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
-/** A "loan account" for one person - lets the same person be picked from a dropdown across
- *  multiple {@link Loan} entries over time instead of retyping their name. */
+/** One person that can be picked across multiple {@link Loan} entries. */
 @Entity
 @Table(name = "loan_persons")
 @Data

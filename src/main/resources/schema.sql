@@ -53,8 +53,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     INDEX idx_user_id (user_id)
     );
 
--- show_in_goals was added for a Dashboard "Goal accounts" card that has since been removed
--- entirely; drop the column on any existing install that still has it (no-op on a fresh install).
+-- show_in_goals belonged to a removed Dashboard card, drop it on old installs
 SET @col_exists = (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts' AND COLUMN_NAME = 'show_in_goals'
@@ -67,9 +66,7 @@ PREPARE stmt FROM @alter_stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- low_balance_threshold is an optional per-account floor: when an account's balance drops below
--- it, the Dashboard shows a warning toast. NULL (the default for every existing account) means
--- no alert is configured for that account - opt-in only, never changes existing behavior.
+-- optional per-account floor, Dashboard warns when the balance goes below it. NULL = no alert
 SET @col_exists = (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts' AND COLUMN_NAME = 'low_balance_threshold'
@@ -153,9 +150,7 @@ PREPARE stmt FROM @alter_stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- income_amount is the month's total Bank + Cash income, stored on both the CASH and BANK rows of
--- that month (same figure on both) - the base for the dashboard's expense % of income. NULL means
--- not filled yet (the startup backfill fills it from transactions).
+-- month total of Bank + Cash income, same value on the CASH and BANK rows. NULL until the startup backfill fills it
 SET @col_exists = (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'monthly_expense_overrides' AND COLUMN_NAME = 'income_amount'
@@ -222,9 +217,7 @@ PREPARE stmt FROM @alter_stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- initial_transaction_id lets deleting a loan also reverse/delete the original lend/borrow
--- transaction (previously only repayments were tagged, so deleting a loan silently left the
--- account balance out of sync with what the loans table showed).
+-- lets deleting a loan also reverse its initial lend/borrow transaction
 SET @col_exists = (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'loans' AND COLUMN_NAME = 'initial_transaction_id'
@@ -237,9 +230,7 @@ PREPARE stmt FROM @alter_stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- loan_persons is a "loan account" per person, so the same person can be picked from a dropdown
--- across multiple loans over time instead of retyping their name (which used to create confusing
--- duplicate-looking rows for the same person in the loans table).
+-- one loan account per person, so the same person can be reused across loans
 CREATE TABLE IF NOT EXISTS loan_persons (
                                             id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                             user_id BIGINT NOT NULL,
