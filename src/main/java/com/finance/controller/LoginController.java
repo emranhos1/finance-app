@@ -56,8 +56,7 @@ public class LoginController {
     @FXML private Label versionLabel;
     private UpdateService.ReleaseInfo availableUpdate;
 
-    /** Shows the running version and checks GitHub for a newer one in the background, so a slow
-     *  or missing internet connection never delays the login screen. */
+    /** Update check runs in the background so a slow connection never delays login. */
     @FXML
     public void initialize() {
         String version = "Version " + updateService.getCurrentVersion();
@@ -91,10 +90,7 @@ public class LoginController {
                 + updateService.getCurrentVersion() + ").");
         updateBanner.setVisible(true);
         updateBanner.setManaged(true);
-        // The login window has a fixed size; grow it by the banner's height so nothing gets squeezed.
-        // Measure at the width the banner will actually get (scene width minus the root's side
-        // padding) - the banner's own width is still 0 right after it becomes visible, and measuring
-        // at 0 wraps the text one letter per line, which made the window as tall as the screen.
+        // measure at the scene width minus padding; at width 0 the text wraps one letter per line
         Scene scene = updateBanner.getScene();
         Window window = scene != null ? scene.getWindow() : null;
         if (window != null && updateBanner.getParent() instanceof Region) {
@@ -106,13 +102,11 @@ public class LoginController {
         }
     }
 
-    /** Height the progress bar adds to the banner once shown: its own height plus the banner's spacing. */
     private double progressBarSpace() {
         return updateProgress.prefHeight(-1) + updateBanner.getSpacing();
     }
 
-    /** Grows (or, with a negative value, shrinks) the fixed-size login window so newly shown content
-     *  isn't squeezed - never past the visible screen height, whatever the measurement says. */
+    /** Resizes the fixed-size login window, never past the screen height. */
     private void growWindow(double extraHeight) {
         Scene scene = updateBanner.getScene();
         Window window = scene != null ? scene.getWindow() : null;
@@ -121,7 +115,7 @@ public class LoginController {
         window.setHeight(Math.min(window.getHeight() + extraHeight, maxHeight));
     }
 
-    /** Release notes hold an English part, then a Bangla part after this marker (see release-notes/README.md). */
+    /** English part, then Bangla part after this marker. */
     private static final String BANGLA_MARKER = "<!-- bn -->";
     private static final String NOTES_LANG_KEY = "releaseNotesLanguage";
     private static final String DOWNLOAD_FOLDER_KEY = "updateDownloadFolder";
@@ -139,7 +133,6 @@ public class LoginController {
         VBox content = new VBox(10);
 
         if (marker < 0) {
-            // older releases were written in one language only - show them as they are
             notes.setText(body.trim());
         } else {
             String english = body.substring(0, marker).trim();
@@ -156,7 +149,6 @@ public class LoginController {
                 notes.setText(bn ? bangla : english);
                 prefs.put(NOTES_LANG_KEY, bn ? "bn" : "en");
             });
-            // remember the language the user picked last time
             (("bn".equals(prefs.get(NOTES_LANG_KEY, "en"))) ? banglaBtn : englishBtn).setSelected(true);
             content.getChildren().add(new HBox(6, englishBtn, banglaBtn));
         }
@@ -169,15 +161,12 @@ public class LoginController {
         alert.showAndWait();
     }
 
-    /** Asks where to save the update installer, downloads it there, then opens its wizard (which
-     *  asks where to install) and closes this app so its files can be replaced. Data in MySQL is
-     *  never touched. */
+    /** Downloads the installer, opens its wizard and closes the app. MySQL data is not touched. */
     @FXML
     public void handleUpdate() {
         if (availableUpdate == null) return;
         UpdateService.ReleaseInfo release = availableUpdate;
 
-        // open where the previous update was saved, so it doesn't have to be browsed to every time
         Preferences prefs = Preferences.userNodeForPackage(LoginController.class);
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Where should the update " + release.getVersion() + " be downloaded?");
@@ -194,7 +183,6 @@ public class LoginController {
         updateProgress.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
         updateProgress.setVisible(true);
         updateProgress.setManaged(true);
-        // the banner only made room for itself when it appeared - make room for the bar too
         growWindow(progressBarSpace());
 
         Thread worker = new Thread(() -> {
@@ -202,7 +190,7 @@ public class LoginController {
                 Path installer = updateService.downloadInstaller(release, folder.toPath(),
                         p -> Platform.runLater(() -> {
                             updateProgress.setProgress(p);
-                            // floor, so it never says 100% while the last bytes are still coming
+                            // floor, so it never shows 100% early
                             updateButton.setText("Downloading... " + (int) Math.floor(p * 100) + "%");
                         }));
                 updateService.deleteOldDownloads(installer);

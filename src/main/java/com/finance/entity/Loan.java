@@ -10,11 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** A roster entry for money lent to or borrowed from a person. The actual money movement goes
- *  through the normal Transaction/AccountLog flow (via TransactionService); this entity only
- *  tracks who, how much, and whether it's settled. Remaining balance is derived as
- *  principalAmount minus the sum of Transactions tagged with this loan's id (repayments only -
- *  the initial lend/borrow transaction is not tagged, since this row already records it). */
+/** Money lent to or borrowed from a person. Remaining = principalAmount minus tagged repayments (the initial transaction is not tagged). */
 @Entity
 @Table(name = "loans")
 @Data
@@ -51,9 +47,7 @@ public class Loan {
     @Column(name = "category_id")
     private Long categoryId;
 
-    /** The initial lend/borrow Transaction this loan created. Deleting the loan reverses and
-     *  deletes this transaction (and any repayment transactions tagged with this loan's id) so
-     *  the account balance never drifts away from what the loans table shows. */
+    /** Initial lend/borrow transaction. Deleting the loan reverses it so account balances stay correct. */
     @Column(name = "initial_transaction_id")
     private Long initialTransactionId;
 

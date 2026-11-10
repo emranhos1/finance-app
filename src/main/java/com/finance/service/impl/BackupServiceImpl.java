@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,6 +65,7 @@ public class BackupServiceImpl implements IBackupService {
                 resolveMysqlCommand("mysqldump"),
                 "-h", conn[0],
                 "-P", conn[1],
+                "--single-transaction",
                 "-u", dbUsername,
                 conn[2]
         );
@@ -76,12 +78,13 @@ public class BackupServiceImpl implements IBackupService {
             throw new Exception("Could not start mysqldump: " + e.getMessage());
         }
 
+        CompletableFuture<String> errors = drainErrors(process);
         try (InputStream in = process.getInputStream();
              OutputStream out = new FileOutputStream(outputFile)) {
             in.transferTo(out);
         }
-        String errorOutput = readStream(process.getErrorStream());
         int exitCode = process.waitFor();
+        String errorOutput = errors.get();
 
         if (exitCode != 0) {
             outputFile.delete();
@@ -116,12 +119,13 @@ public class BackupServiceImpl implements IBackupService {
             throw new Exception("Could not start mysql: " + e.getMessage());
         }
 
+        CompletableFuture<String> errors = drainErrors(process);
         try (InputStream fileIn = new FileInputStream(sqlFile);
              OutputStream procIn = process.getOutputStream()) {
             fileIn.transferTo(procIn);
         }
-        String errorOutput = readStream(process.getErrorStream());
         int exitCode = process.waitFor();
+        String errorOutput = errors.get();
 
         if (exitCode != 0) {
             throw new Exception("mysql import failed: " + (errorOutput.isBlank() ? "exit code " + exitCode : errorOutput.trim()));
@@ -129,19 +133,8 @@ public class BackupServiceImpl implements IBackupService {
         return "Database restored successfully from " + sqlFile.getName();
     }
 
-    /**
-     * Finds the full path of a MySQL client tool (mysqldump / mysql) on the client's own machine -
-     * MySQL may be installed on any drive, not only C:. Looked up in this order, first hit wins:
-     * <ol>
-     *   <li>the running MySQL server's own install folder ({@code SELECT @@basedir} over the app's
-     *       existing DB connection) - exactly the MySQL this app uses, wherever it was installed;</li>
-     *   <li>the PATH;</li>
-     *   <li>the locations MySQL's Windows installer registered (64-bit and 32-bit registry views);</li>
-     *   <li>common MySQL / XAMPP / WAMP / Laragon folders on every drive.</li>
-     * </ol>
-     * The full path is passed as the command itself because ProcessBuilder.environment() PATH
-     * changes do NOT affect how Windows/Java resolves a bare command name.
-     */
+    /** Finds mysqldump/mysql: server basedir, PATH, registry, then common folders on every drive.
+     *  The full path is the command because ProcessBuilder PATH changes don't affect resolution. */
     private String resolveMysqlCommand(String name) throws Exception {
         String cached = resolvedCommands.get(name);
         if (cached != null && new File(cached).isFile()) return cached;
@@ -170,7 +163,7 @@ public class BackupServiceImpl implements IBackupService {
         return dirs;
     }
 
-    /** The bin folder of the MySQL server the app is connected to, e.g. D:\MySQL\MySQL Server 8.0\bin. */
+    /** bin folder of the connected MySQL server. */
     private File binDirFromServer() {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement();
@@ -195,8 +188,7 @@ public class BackupServiceImpl implements IBackupService {
         return dirs;
     }
 
-    /** MySQL's Windows installer registers HKLM\SOFTWARE\MySQL AB\<product>\Location; a 32-bit
-     *  installer writes it to the 32-bit view (WOW6432Node), so both views are read. */
+    /** Reads the MySQL installer registry key; also checks the 32-bit view (WOW6432Node). */
     private List<File> binDirsFromRegistry(String view) {
         List<File> dirs = new ArrayList<>();
         try {
@@ -213,8 +205,7 @@ public class BackupServiceImpl implements IBackupService {
         return dirs;
     }
 
-    /** Usual install folders on every drive (C:, D:, E:, ...), e.g. D:\Program Files\MySQL\MySQL Server 8.0\bin,
-     *  E:\xampp\mysql\bin, or any top-level folder with "mysql" in its name (D:\mysql-8.0.36\bin). */
+    /** Usual MySQL/XAMPP/WAMP/Laragon folders on every drive, plus top-level folders with "mysql" in the name. */
     private List<File> binDirsOnAllDrives() {
         List<File> dirs = new ArrayList<>();
         File[] roots = File.listRoots();
@@ -239,7 +230,6 @@ public class BackupServiceImpl implements IBackupService {
         return dirs;
     }
 
-    /** Adds <parent>\<every subfolder>\bin, e.g. MySQL\MySQL Server 8.0\bin. */
     private void addVersionBins(List<File> dirs, File parent) {
         File[] children = parent.listFiles(File::isDirectory);
         if (children == null) return;
@@ -248,7 +238,7 @@ public class BackupServiceImpl implements IBackupService {
         }
     }
 
-    /** e.g. backup_data_20260131.1155.sql - date before the dot, time after it, so repeated backups never collide. */
+    /** e.g. backup_data_20260131.1155.sql; the time keeps backups from colliding. */
     private String generateBackupFileName() {
         return "backup_data_" + LocalDateTime.now().format(BACKUP_NAME_FORMAT) + ".sql";
     }
@@ -259,6 +249,17 @@ public class BackupServiceImpl implements IBackupService {
             throw new Exception("Could not parse database connection details from application.properties");
         }
         return new String[]{m.group(1), m.group(2), m.group(3)};
+    }
+
+    /** Reads stderr on another thread so a full pipe can't block the process while stdout/stdin is being handled. */
+    private CompletableFuture<String> drainErrors(Process process) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return readStream(process.getErrorStream());
+            } catch (IOException e) {
+                return "";
+            }
+        });
     }
 
     private String readStream(InputStream in) throws IOException {

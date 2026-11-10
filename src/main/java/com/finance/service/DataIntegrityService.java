@@ -17,9 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Read-only diagnostic checks over the whole database - never modifies any data. Mirrors the
- *  manual SQL sanity checks (account balance vs. account_logs chain continuity, dangling loan_id
- *  references) that were run by hand while debugging the Loan feature. */
+/** Read-only DB checks (balance vs. log chain, dangling loan_id). Never modifies data. */
 @Service
 @RequiredArgsConstructor
 public class DataIntegrityService {
@@ -35,10 +33,8 @@ public class DataIntegrityService {
         return issues;
     }
 
-    /** For each account with at least one log entry: every log's balanceAfter must equal the next
-     *  log's balanceBefore (no gap in the chain), and the last log's balanceAfter must equal the
-     *  account's current balance. Accounts with zero logs (an untouched opening balance) are
-     *  skipped - that's not an error. */
+    /** Each log's balanceAfter must match the next balanceBefore, and the last must match the account balance.
+     *  Accounts with no logs are skipped. */
     public List<String> checkAccountBalances() {
         List<String> issues = new ArrayList<>();
         for (Account account : accountRepository.findAll()) {
@@ -64,8 +60,7 @@ public class DataIntegrityService {
         return issues;
     }
 
-    /** A transaction tagged with a loan_id whose loan no longer exists (e.g. left over from before
-     *  loan deletion was fixed to cascade-reverse its transactions). */
+    /** Transactions whose loan_id points to a loan that no longer exists. */
     public List<String> checkDanglingLoanReferences() {
         List<String> issues = new ArrayList<>();
         Set<Long> loanIds = new HashSet<>();

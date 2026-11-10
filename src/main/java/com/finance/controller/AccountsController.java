@@ -11,6 +11,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -40,6 +41,7 @@ public class AccountsController {
     @FXML private TextField nameField;
     @FXML private ComboBox<AccountType> typeComboBox;
     @FXML private TextField balanceField;
+    @FXML private VBox maturityInstallmentBox;
     @FXML private DatePicker maturityDatePicker;
     @FXML private TextField installmentField;
     @FXML private TextField lowBalanceThresholdField;
@@ -80,6 +82,13 @@ public class AccountsController {
         typeComboBox.setConverter(new StringConverter<AccountType>() {
             public String toString(AccountType t) { return t == null ? "" : t.getName(); }
             public AccountType fromString(String s) { return null; }
+        });
+        typeComboBox.valueProperty().addListener((obs, o, type) -> {
+            boolean matures = type != null
+                    && ("DPS".equalsIgnoreCase(type.getName()) || "FDR".equalsIgnoreCase(type.getName()));
+            maturityInstallmentBox.setVisible(matures);
+            maturityInstallmentBox.setManaged(matures);
+            if (!matures) { maturityDatePicker.setValue(null); installmentField.clear(); }
         });
 
         accountsTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
@@ -165,7 +174,7 @@ public class AccountsController {
         Account sel = accountsTable.getSelectionModel().getSelectedItem();
         if (sel == null) return;
         if (!confirm("Delete account '" + sel.getName() + "'?")) return;
-        try { accountService.deleteAccount(sel.getId()); resetAccountForm(); loadAccounts();
+        try { accountService.deleteAccount(sel.getId(), sessionContext.getCurrentUserId()); resetAccountForm(); loadAccounts();
         } catch (Exception e) { showAlert("Error", e.getMessage()); }
     }
 
