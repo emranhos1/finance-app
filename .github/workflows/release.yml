@@ -42,9 +42,10 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build jar
+      # runs the unit tests; a failing test stops the release
+      - name: Build jar and run tests
         if: steps.version.outputs.release == 'true'
-        run: mvn -B package -DskipTests
+        run: mvn -B package
 
       # credentials.json is not in git, it is copied next to DFMS.exe on each PC
       - name: Build app image with its own Java runtime (jpackage)
@@ -55,7 +56,7 @@ jobs:
           Copy-Item target/dfms.jar target/jpackage-input/
           jpackage --type app-image --name DFMS --input target/jpackage-input --main-jar dfms.jar `
             --dest target/jpackage --app-version $env:VERSION --vendor DFMS `
-            --icon installer/dfms.ico --java-options "-Dfile.encoding=UTF-8"
+            --icon installer/dfms.ico --java-options "-Dfile.encoding=UTF-8" --java-options "-Dspring.profiles.active=prod"
 
       - name: Build installer (Inno Setup)
         if: steps.version.outputs.release == 'true'
