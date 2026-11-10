@@ -9,7 +9,7 @@
 
     <TabPane VBox.vgrow="ALWAYS">
 
-        <!-- ===== TAB 1: Transfer ===== -->
+        <!-- transfer tab -->
         <Tab text="Transfer" closable="false">
             <HBox spacing="15" styleClass="tab-content">
 
@@ -20,9 +20,11 @@
 
                     <Label text="From Account"/>
                     <ComboBox fx:id="fromAccountComboBox" maxWidth="Infinity"/>
+                    <Label fx:id="fromBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
 
                     <Label text="To Account"/>
                     <ComboBox fx:id="toAccountComboBox" maxWidth="Infinity"/>
+                    <Label fx:id="toBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
 
                     <Label text="Transfer Type"/>
                     <ComboBox fx:id="transferTypeComboBox" maxWidth="Infinity"/>
@@ -82,7 +84,7 @@
             </HBox>
         </Tab>
 
-        <!-- ===== TAB 2: Transfer Types ===== -->
+        <!-- transfer types tab -->
         <Tab text="Transfer Types" closable="false">
             <HBox spacing="15" styleClass="tab-content">
 

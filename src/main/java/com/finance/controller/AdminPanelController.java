@@ -180,15 +180,11 @@ public class AdminPanelController {
         Timeline countdown = startConnectCountdown();
         runInBackground(driveProgress, driveStatusLabel,
                 new Button[]{connectDriveBtn, disconnectDriveBtn, uploadDriveBtn, downloadDriveBtn},
-                () -> { googleDriveService.connect(); return "Connected to Google Drive. " + googleDriveService.getLatestBackupDisplay(); },
+                () -> { googleDriveService.connect(); return "Connected to Google Drive (" + googleDriveService.getConnectedEmail() + "). " + googleDriveService.getLatestBackupDisplay(); },
                 countdown);
     }
 
-    /**
-     * Shows a 1-minute countdown in the status label while waiting for the browser sign-in.
-     * If the user abandons the browser tab, the service-side timeout in GoogleDriveServiceImpl
-     * gives up after the same duration and frees the local callback port for the next attempt.
-     */
+    /** 1-minute countdown while waiting for sign-in; the service times out after the same time. */
     private Timeline startConnectCountdown() {
         final int timeoutSeconds = 60;
         AtomicInteger remaining = new AtomicInteger(timeoutSeconds);
@@ -218,29 +214,41 @@ public class AdminPanelController {
 
     @FXML
     public void handleUploadDrive() {
-        if (!confirm("This will export your current data and upload it to the 'finance_app' folder in your connected Google Drive account.\n\nContinue?")) return;
+        if (!confirm("This will export your current data and upload it to the 'finance_app' folder in your connected Google Drive account:\n"
+                + googleDriveService.getConnectedEmail() + "\n\nContinue?")) return;
 
         runInBackground(driveProgress, driveStatusLabel,
                 new Button[]{connectDriveBtn, disconnectDriveBtn, uploadDriveBtn, downloadDriveBtn},
                 () -> {
                     File tempDir = new File(System.getProperty("java.io.tmpdir"));
-                    String localPath = backupService.exportToLocal(tempDir);
-                    String uploadResult = googleDriveService.upload(new File(localPath));
-                    return uploadResult + ". " + googleDriveService.getLatestBackupDisplay();
+                    File dump = new File(backupService.exportToLocal(tempDir));
+                    try {
+                        String uploadResult = googleDriveService.upload(dump);
+                        return uploadResult + " - account: " + googleDriveService.getConnectedEmail()
+                                + ". " + googleDriveService.getLatestBackupDisplay();
+                    } finally {
+                        dump.delete();
+                    }
                 });
     }
 
     @FXML
     public void handleDownloadDrive() {
-        if (!confirm("This will download the most recent backup from the 'finance_app' folder in your Google Drive "
-                + "and use it to overwrite your current local database.\n\nContinue?")) return;
+        if (!confirm("This will download the most recent backup from the 'finance_app' folder in your Google Drive account ("
+                + googleDriveService.getConnectedEmail()
+                + ") and use it to overwrite your current local database.\n\nContinue?")) return;
 
         runInBackground(driveProgress, driveStatusLabel,
                 new Button[]{connectDriveBtn, disconnectDriveBtn, uploadDriveBtn, downloadDriveBtn},
                 () -> {
                     File tempDir = new File(System.getProperty("java.io.tmpdir"));
                     File downloaded = googleDriveService.downloadLatest(tempDir);
-                    return backupService.importFromLocal(downloaded);
+                    try {
+                        return backupService.importFromLocal(downloaded)
+                                + " (Google Drive: " + googleDriveService.getConnectedEmail() + ")";
+                    } finally {
+                        downloaded.delete();
+                    }
                 });
     }
 
@@ -313,6 +321,8 @@ public class AdminPanelController {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message);
         alert.setTitle("Confirm");
         alert.setHeaderText(null);
+        alert.getDialogPane().setMinWidth(560);
+        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         return alert.showAndWait().filter(b -> b == ButtonType.OK).isPresent();
     }
 

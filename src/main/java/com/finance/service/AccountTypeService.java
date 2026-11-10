@@ -33,7 +33,7 @@ public class AccountTypeService {
         if (!type.getUserId().equals(userId)) throw new SecurityException("Access denied");
 
         String trimmed = newName.trim();
-        // Allow update if same record (same id), only block if a DIFFERENT record has same name
+        // block only if a different record has the same name
         boolean duplicateExists = accountTypeRepository.existsByUserIdAndNameIgnoreCaseAndIdNot(userId, trimmed, typeId);
         if (duplicateExists)
             throw new IllegalArgumentException("Account type '" + trimmed + "' already exists");

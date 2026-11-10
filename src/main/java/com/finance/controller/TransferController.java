@@ -38,6 +38,8 @@ public class TransferController {
     @FXML private DatePicker datePicker;
     @FXML private ComboBox<Account> fromAccountComboBox;
     @FXML private ComboBox<Account> toAccountComboBox;
+    @FXML private Label fromBalanceLabel;
+    @FXML private Label toBalanceLabel;
     @FXML private ComboBox<TransferType> transferTypeComboBox;
     @FXML private TextField amountField;
     @FXML private TextArea noteArea;
@@ -92,6 +94,10 @@ public class TransferController {
         resetTypeForm();
     }
 
+    private void showBalance(Label label, Account account) {
+        label.setText(account == null ? "" : "Available balance: ৳ " + account.getBalance().toPlainString());
+    }
+
     private void setupAccountComboBoxes() {
         StringConverter<Account> converter = new StringConverter<Account>() {
             public String toString(Account a) {
@@ -101,6 +107,8 @@ public class TransferController {
         };
         fromAccountComboBox.setConverter(converter);
         toAccountComboBox.setConverter(converter);
+        fromAccountComboBox.valueProperty().addListener((obs, o, selected) -> showBalance(fromBalanceLabel, selected));
+        toAccountComboBox.valueProperty().addListener((obs, o, selected) -> showBalance(toBalanceLabel, selected));
 
         transferTypeComboBox.setConverter(new StringConverter<TransferType>() {
             public String toString(TransferType t) { return t == null ? "" : t.getName(); }
@@ -172,6 +180,10 @@ public class TransferController {
                 .filter(t -> t.getId().equals(tx.getTransferTypeId())).findFirst().ifPresent(transferTypeComboBox::setValue);
         else transferTypeComboBox.setValue(null);
 
+        // update only changes date, amount, transfer type and note, so the accounts are locked while editing
+        fromAccountComboBox.setDisable(true);
+        toAccountComboBox.setDisable(true);
+
         saveTransferBtn.setVisible(false);
         saveTransferBtn.setManaged(false);
         txEditButtons.setVisible(true);
@@ -227,11 +239,11 @@ public class TransferController {
         Account from = fromAccountComboBox.getValue();
         Account to = toAccountComboBox.getValue();
         TransferType transferType = transferTypeComboBox.getValue();
-        LocalDate date = datePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(datePicker);
         String amountStr = amountField.getText().trim();
         String note = noteArea.getText().trim();
-        if (from == null || to == null || amountStr.isEmpty() || transferType == null) {
-            showAlert("Validation Error", "From Account, To Account, Transfer Type and Amount are required"); return;
+        if (from == null || to == null || amountStr.isEmpty() || transferType == null || date == null) {
+            showAlert("Validation Error", "From Account, To Account, Transfer Type, Date and Amount are required"); return;
         }
         if (from.getId().equals(to.getId())) {
             showAlert("Validation Error", "Source and destination accounts must be different"); return;
@@ -250,12 +262,12 @@ public class TransferController {
     @FXML
     public void handleUpdateTransfer() {
         if (selectedTransfer == null) return;
-        LocalDate date = datePicker.getValue();
+        LocalDate date = com.finance.util.DatePickerUtil.readDate(datePicker);
         String amountStr = amountField.getText().trim();
         String note = noteArea.getText().trim();
         TransferType transferType = transferTypeComboBox.getValue();
-        if (amountStr.isEmpty() || transferType == null) {
-            showAlert("Validation Error", "Amount and Transfer Type are required"); return;
+        if (amountStr.isEmpty() || transferType == null || date == null) {
+            showAlert("Validation Error", "Amount, Transfer Type and Date are required"); return;
         }
         if (!confirm("Update this transfer?")) return;
         try {
@@ -282,6 +294,8 @@ public class TransferController {
 
     private void resetForm() {
         selectedTransfer = null;
+        fromAccountComboBox.setDisable(false);
+        toAccountComboBox.setDisable(false);
         datePicker.setValue(LocalDate.now());
         fromAccountComboBox.setValue(null);
         toAccountComboBox.setValue(null);
