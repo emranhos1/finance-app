@@ -43,6 +43,10 @@ public class Account {
     @Column
     private BigDecimal lowBalanceThreshold;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean includeInTotal = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

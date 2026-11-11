@@ -41,3 +41,6 @@ dist/
 # Google Drive OAuth secrets (real credentials.json contains a real client_secret - never commit it)
 src/main/resources/credentials.json
 tokens/
+
+# Local bug list, not part of the repo
+BUG_TRACKER.md

@@ -22,7 +22,9 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
@@ -64,6 +66,7 @@ public class DashboardHomeController {
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH);
     private static final DateTimeFormatter FULL_MONTH_FMT = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
     // fixed month column, value columns share the rest
+    private static final int CARDS_PER_ROW = 5;
     private static final double MONTH_COL_WIDTH = 50;
     private static final double VALUE_COL_WIDTH = 120;
     private static final String[] BADGE_PALETTE = {"badge-teal", "badge-gold", "badge-blue", "badge-purple", "badge-rose", "badge-mint"};
@@ -77,7 +80,7 @@ public class DashboardHomeController {
     @FXML private HBox lowBalanceReminderBanner;
     @FXML private Label lowBalanceReminderLabel;
 
-    @FXML private HBox balanceCardsBox;
+    @FXML private VBox balanceCardsBox;
 
 
     @FXML private VBox recentTxBox;
@@ -268,6 +271,7 @@ public class DashboardHomeController {
 
     private void buildBalanceCards(Long userId) {
         balanceCardsBox.getChildren().clear();
+        List<HBox> cards = new ArrayList<>();
         List<AccountType> types = accountTypeService.getAccountTypesByUserId(userId);
         for (AccountType at : types) {
             BigDecimal balance = accountService.getBalanceByAccountType(userId, at);
@@ -288,8 +292,86 @@ public class DashboardHomeController {
             card.getStyleClass().add("dash-account-card");
             card.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(card, Priority.ALWAYS);
-            balanceCardsBox.getChildren().add(card);
+            cards.add(card);
         }
+        cards.add(buildTotalCard(userId));
+
+        // at most CARDS_PER_ROW per row; the cards of a row share its width, so a lone last card fills the line
+        for (int i = 0; i < cards.size(); i += CARDS_PER_ROW) {
+            HBox row = new HBox(8);
+            for (HBox card : cards.subList(i, Math.min(i + CARDS_PER_ROW, cards.size()))) {
+                card.setPrefWidth(0);
+                row.getChildren().add(card);
+            }
+            balanceCardsBox.getChildren().add(row);
+        }
+    }
+
+    /** Sum of the accounts the user ticked in the picker; always shown so the picker stays reachable. */
+    private HBox buildTotalCard(Long userId) {
+        List<Account> accounts = accountService.getAccountsByUserId(userId);
+        BigDecimal total = BigDecimal.ZERO;
+        int count = 0;
+        for (Account a : accounts) {
+            if (Boolean.TRUE.equals(a.getIncludeInTotal())) {
+                total = total.add(a.getBalance());
+                count++;
+            }
+        }
+
+        Label badge = new Label("Σ");
+        badge.getStyleClass().addAll("dash-badge", "badge-teal");
+
+        Label titleLabel = new Label(count == 0 ? "TOTAL (select accounts)"
+                : "TOTAL (" + count + (count == 1 ? " account)" : " accounts)"));
+        titleLabel.getStyleClass().add("dash-account-type");
+
+        Label amtLabel = new Label(fmt(total));
+        amtLabel.getStyleClass().add("dash-account-amount");
+
+        Button editBtn = new Button("+");
+        editBtn.getStyleClass().add("dash-total-add-btn");
+        Tooltip.install(editBtn, tip("Add or remove accounts in this Total"));
+        editBtn.setOnAction(e -> handleChooseTotalAccounts(userId, accounts));
+
+        VBox textBox = new VBox(2, titleLabel, amtLabel);
+        HBox.setHgrow(textBox, Priority.ALWAYS);
+        HBox card = new HBox(10, badge, textBox, editBtn);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.getStyleClass().add("dash-account-card");
+        card.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(card, Priority.ALWAYS);
+        return card;
+    }
+
+    private void handleChooseTotalAccounts(Long userId, List<Account> accounts) {
+        VBox list = new VBox(8);
+        Map<Long, CheckBox> boxes = new LinkedHashMap<>();
+        for (Account a : accounts) {
+            CheckBox box = new CheckBox(a.getName() + " (" + a.getAccountType().getName() + ")  —  " + fmt(a.getBalance()));
+            box.setSelected(Boolean.TRUE.equals(a.getIncludeInTotal()));
+            boxes.put(a.getId(), box);
+            list.getChildren().add(box);
+        }
+        if (accounts.isEmpty()) list.getChildren().add(new Label("No accounts yet."));
+
+        ScrollPane scroll = new ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportWidth(360);
+        scroll.setPrefViewportHeight(Math.min(230, 27.0 * Math.max(accounts.size(), 1) + 10));
+
+        Alert dialog = new Alert(Alert.AlertType.CONFIRMATION);
+        dialog.setTitle("Total - choose accounts");
+        dialog.setHeaderText(null);
+        dialog.setGraphic(null);
+        dialog.getDialogPane().setContent(new VBox(8, new Label("Tick the accounts to add up:"), scroll));
+        dialog.showAndWait().ifPresent(btn -> {
+            if (btn != ButtonType.OK) return;
+            java.util.Set<Long> chosen = new java.util.HashSet<>();
+            boxes.forEach((id, box) -> { if (box.isSelected()) chosen.add(id); });
+            accountService.setAccountsIncludedInTotal(userId, chosen);
+            refreshDashboard();
+        });
     }
 
     private void buildRecentTransactions(Long userId, List<Account> accounts) {
@@ -591,18 +673,16 @@ public class DashboardHomeController {
             Tooltip.install(valueLabel, new Tooltip("Manually saved value — overrides the calculated total"));
         }
 
-        Button recalcBtn = new Button("↻");
-        recalcBtn.getStyleClass().add("dash-monthly-edit-btn");
+        Button recalcBtn = monthlyButton("↻");
         if (manual) {
             recalcBtn.setVisible(false);
         } else {
-            Tooltip.install(recalcBtn, new Tooltip("Recalculate this month's " + what + " from its transactions"));
+            Tooltip.install(recalcBtn, tip("Restore"));
             recalcBtn.setOnAction(e -> onRecalculate.run());
         }
 
-        Button editBtn = new Button("✎");
-        editBtn.getStyleClass().add("dash-monthly-edit-btn");
-        Tooltip.install(editBtn, new Tooltip("Manually save this month's actual " + what));
+        Button editBtn = monthlyButton("✎");
+        Tooltip.install(editBtn, tip("Edit"));
         editBtn.setOnAction(e -> onEdit.run());
 
         return cell(valueLabel, recalcBtn, editBtn);
@@ -639,10 +719,25 @@ public class DashboardHomeController {
     }
 
     private Button hiddenButton(String text) {
-        Button button = new Button(text);
-        button.getStyleClass().add("dash-monthly-edit-btn");
+        Button button = monthlyButton(text);
         button.setVisible(false);
         return button;
+    }
+
+    /** Monthly table button; restore and edit get their own colour and size so they are easy to tell apart. */
+    private Button monthlyButton(String glyph) {
+        Button button = new Button(glyph);
+        button.getStyleClass().addAll("dash-monthly-edit-btn",
+                "↻".equals(glyph) ? "dash-monthly-restore-btn" : "dash-monthly-pen-btn");
+        return button;
+    }
+
+    /** Tooltip that appears quickly; its font is fixed because a tooltip otherwise inherits the font of its button. */
+    private Tooltip tip(String text) {
+        Tooltip tooltip = new Tooltip(text);
+        tooltip.setStyle("-fx-font-size: 12; -fx-font-weight: normal;");
+        tooltip.setShowDelay(Duration.millis(150));
+        return tooltip;
     }
 
     private void handleRecalculateIncome(YearMonth ym, BigDecimal currentAmount, Long userId, List<Account> accounts) {

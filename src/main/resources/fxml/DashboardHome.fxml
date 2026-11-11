@@ -32,7 +32,7 @@
         <Label fx:id="lowBalanceReminderLabel" text="" wrapText="true" HBox.hgrow="ALWAYS"/>
     </HBox>
 
-    <HBox fx:id="balanceCardsBox" spacing="8"/>
+    <VBox fx:id="balanceCardsBox" spacing="8"/>
 
     <GridPane hgap="10">
         <columnConstraints>
