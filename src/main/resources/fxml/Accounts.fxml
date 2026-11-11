@@ -65,6 +65,7 @@
                 <VBox spacing="8" styleClass="form-pane">
                     <Label text="Type Name"/>
                     <TextField fx:id="typeNameField" promptText="e.g. cash, bank, savings"/>
+                    <CheckBox fx:id="typeHasMaturityCheck" text="Has maturity date and installment" wrapText="true"/>
 
                     <Button fx:id="typeAddBtn" text="Add Type" onAction="#handleAddType" maxWidth="Infinity" styleClass="btn-primary"/>
 
@@ -79,6 +80,7 @@
                     <columns>
                         <TableColumn fx:id="typeIdColumn"   text="ID"   prefWidth="60"/>
                         <TableColumn fx:id="typeNameColumn" text="Name" prefWidth="240"/>
+                        <TableColumn fx:id="typeMaturityColumn" text="Maturity" prefWidth="90"/>
                     </columns>
                     <placeholder><Label text="No account types yet. Add some!"/></placeholder>
                 </TableView>

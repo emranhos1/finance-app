@@ -25,6 +25,10 @@ public class AccountType {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean hasMaturity = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
