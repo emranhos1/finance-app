@@ -310,16 +310,14 @@
 .dash-monthly-edit-btn:hover {
     -fx-text-fill: #1B5446;
 }
-/* restore (recalculate) = green and bigger, edit (pen) = blue */
+/* restore (recalculate) = green, edit (pen) = blue; same size as before so the table rows keep their height */
 .dash-monthly-restore-btn {
-    -fx-font-size: 15;
     -fx-text-fill: #1E8E6E;
 }
 .dash-monthly-restore-btn:hover {
     -fx-text-fill: #0F5D45;
 }
 .dash-monthly-pen-btn {
-    -fx-font-size: 13;
     -fx-text-fill: #2F6FA8;
 }
 .dash-monthly-pen-btn:hover {

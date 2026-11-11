@@ -21,6 +21,10 @@ import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 public class FinanceApplication extends Application {
+    // Dashboard window size as a share of the screen's usable area
+    private static final double DASHBOARD_WIDTH_RATIO = 0.80;
+    private static final double DASHBOARD_HEIGHT_RATIO = 0.90;
+
     @Getter
     private static ApplicationContext applicationContext;
     private static final CountDownLatch springInitialized = new CountDownLatch(1);
@@ -119,8 +123,8 @@ public class FinanceApplication extends Application {
         Parent root = loader.load();
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-        double width = screenBounds.getWidth() * 0.75;
-        double height = screenBounds.getHeight() * 0.88;
+        double width = screenBounds.getWidth() * DASHBOARD_WIDTH_RATIO;
+        double height = screenBounds.getHeight() * DASHBOARD_HEIGHT_RATIO;
 
         Scene scene = new Scene(root, width, height);
         applyCSS(scene);
@@ -137,7 +141,7 @@ public class FinanceApplication extends Application {
         Platform.runLater(() -> fitDashboardHeightToContent(screenBounds));
     }
 
-    /** Fits the window to the content height, capped at the screen height (scrolls beyond). */
+    /** Fits the window to the content height, capped at 90% of the screen height (scrolls beyond). */
     private static void fitDashboardHeightToContent(Rectangle2D screenBounds) {
         Scene scene = primaryStage.getScene();
         if (scene == null) return;
@@ -146,7 +150,7 @@ public class FinanceApplication extends Application {
         root.layout();
         double contentHeight = Math.ceil(root.prefHeight(scene.getWidth())) + 2; // +2: no scrollbar from rounding
         double titleBarAndBorders = primaryStage.getHeight() - scene.getHeight();
-        double height = Math.min(contentHeight + titleBarAndBorders, screenBounds.getHeight());
+        double height = Math.min(contentHeight + titleBarAndBorders, screenBounds.getHeight() * DASHBOARD_HEIGHT_RATIO);
         primaryStage.setMinHeight(Math.min(primaryStage.getMinHeight(), height));
         primaryStage.setHeight(height);
         primaryStage.setY(screenBounds.getMinY() + (screenBounds.getHeight() - height) / 2);
