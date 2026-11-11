@@ -14,20 +14,20 @@ import java.util.List;
 public class AccountTypeService {
     private final AccountTypeRepository accountTypeRepository;
 
-    public AccountType createAccountType(Long userId, String name) {
+    public AccountType createAccountType(Long userId, String name, boolean hasMaturity) {
         if (name == null || name.trim().isEmpty())
             throw new IllegalArgumentException("Account type name cannot be empty");
         String trimmed = name.trim();
         if (accountTypeRepository.existsByUserIdAndNameIgnoreCase(userId, trimmed))
             throw new IllegalArgumentException("Account type '" + trimmed + "' already exists");
-        return accountTypeRepository.save(AccountType.builder().userId(userId).name(trimmed).build());
+        return accountTypeRepository.save(AccountType.builder().userId(userId).name(trimmed).hasMaturity(hasMaturity).build());
     }
 
     public List<AccountType> getAccountTypesByUserId(Long userId) {
         return accountTypeRepository.findByUserId(userId);
     }
 
-    public AccountType updateAccountType(Long typeId, Long userId, String newName) {
+    public AccountType updateAccountType(Long typeId, Long userId, String newName, boolean hasMaturity) {
         AccountType type = accountTypeRepository.findById(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("Account type not found"));
         if (!type.getUserId().equals(userId)) throw new SecurityException("Access denied");
@@ -39,6 +39,7 @@ public class AccountTypeService {
             throw new IllegalArgumentException("Account type '" + trimmed + "' already exists");
 
         type.setName(trimmed);
+        type.setHasMaturity(hasMaturity);
         return accountTypeRepository.save(type);
     }
 

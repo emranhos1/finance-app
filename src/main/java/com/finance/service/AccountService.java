@@ -125,6 +125,17 @@ public class AccountService {
         accountRepository.deleteById(accountId);
     }
 
+    /** Marks exactly the given accounts of this user as part of the Dashboard total; all others are cleared. */
+    public void setAccountsIncludedInTotal(Long userId, java.util.Set<Long> accountIds) {
+        for (Account account : getAccountsByUserId(userId)) {
+            boolean include = accountIds.contains(account.getId());
+            if (include != Boolean.TRUE.equals(account.getIncludeInTotal())) {
+                account.setIncludeInTotal(include);
+                accountRepository.save(account);
+            }
+        }
+    }
+
     public List<Account> getAccountsBelowThreshold(Long userId) {
         List<Account> result = new java.util.ArrayList<>();
         for (Account account : getAccountsByUserId(userId)) {
