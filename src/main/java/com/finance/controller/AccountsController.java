@@ -52,6 +52,8 @@ public class AccountsController {
     @FXML private TableColumn<AccountType, Long> typeIdColumn;
     @FXML private TableColumn<AccountType, String> typeNameColumn;
     @FXML private TextField typeNameField;
+    @FXML private CheckBox typeHasMaturityCheck;
+    @FXML private TableColumn<AccountType, String> typeMaturityColumn;
     @FXML private Button typeAddBtn;
     @FXML private HBox typeEditButtons;
 
@@ -84,8 +86,7 @@ public class AccountsController {
             public AccountType fromString(String s) { return null; }
         });
         typeComboBox.valueProperty().addListener((obs, o, type) -> {
-            boolean matures = type != null
-                    && ("DPS".equalsIgnoreCase(type.getName()) || "FDR".equalsIgnoreCase(type.getName()));
+            boolean matures = type != null && Boolean.TRUE.equals(type.getHasMaturity());
             maturityInstallmentBox.setVisible(matures);
             maturityInstallmentBox.setManaged(matures);
             if (!matures) { maturityDatePicker.setValue(null); installmentField.clear(); }
@@ -191,9 +192,12 @@ public class AccountsController {
     private void setupTypesTable() {
         typeIdColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         typeNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        typeMaturityColumn.setCellValueFactory(cd ->
+                new SimpleStringProperty(Boolean.TRUE.equals(cd.getValue().getHasMaturity()) ? "Yes" : "—"));
         typesTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
             if (sel != null) {
                 typeNameField.setText(sel.getName());
+                typeHasMaturityCheck.setSelected(Boolean.TRUE.equals(sel.getHasMaturity()));
                 typeAddBtn.setVisible(false); typeAddBtn.setManaged(false);
                 typeEditButtons.setVisible(true); typeEditButtons.setManaged(true);
             }
@@ -204,7 +208,7 @@ public class AccountsController {
         String name = typeNameField.getText().trim();
         if (name.isEmpty()) { showAlert("Validation Error", "Type name cannot be empty"); return; }
         if (!confirm("Add account type '" + name + "'?")) return;
-        try { accountTypeService.createAccountType(sessionContext.getCurrentUserId(), name); resetTypeForm(); loadAccountTypes();
+        try { accountTypeService.createAccountType(sessionContext.getCurrentUserId(), name, typeHasMaturityCheck.isSelected()); resetTypeForm(); loadAccountTypes();
         } catch (Exception e) { showAlert("Error", e.getMessage()); }
     }
 
@@ -214,7 +218,7 @@ public class AccountsController {
         String name = typeNameField.getText().trim();
         if (name.isEmpty()) { showAlert("Validation Error", "Name cannot be empty"); return; }
         if (!confirm("Update type '" + sel.getName() + "' to '" + name + "'?")) return;
-        try { accountTypeService.updateAccountType(sel.getId(), sessionContext.getCurrentUserId(), name); resetTypeForm(); loadAccountTypes();
+        try { accountTypeService.updateAccountType(sel.getId(), sessionContext.getCurrentUserId(), name, typeHasMaturityCheck.isSelected()); resetTypeForm(); loadAccountTypes();
         } catch (Exception e) { showAlert("Error", e.getMessage()); }
     }
 
@@ -230,6 +234,7 @@ public class AccountsController {
 
     private void resetTypeForm() {
         typeNameField.clear();
+        typeHasMaturityCheck.setSelected(false);
         typesTable.getSelectionModel().clearSelection();
         typeAddBtn.setVisible(true); typeAddBtn.setManaged(true);
         typeEditButtons.setVisible(false); typeEditButtons.setManaged(false);

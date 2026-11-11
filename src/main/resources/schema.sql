@@ -29,6 +29,19 @@ CREATE TABLE IF NOT EXISTS account_types (
     UNIQUE KEY uk_user_type (user_id, name)
     );
 
+-- accounts of a type with has_maturity = 1 get Maturity Date and Installment fields
+SET @col_exists = (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'account_types' AND COLUMN_NAME = 'has_maturity'
+);
+SET @alter_stmt = IF(@col_exists = 0,
+    'ALTER TABLE account_types ADD COLUMN has_maturity BOOLEAN NOT NULL DEFAULT FALSE',
+    'SELECT 1'
+);
+PREPARE stmt FROM @alter_stmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS transfer_types (
                                               id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                               user_id BIGINT NOT NULL,
@@ -73,6 +86,19 @@ SET @col_exists = (
 );
 SET @alter_stmt = IF(@col_exists = 0,
     'ALTER TABLE accounts ADD COLUMN low_balance_threshold DECIMAL(15,2) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @alter_stmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- accounts with include_in_total = 1 are added up in the Dashboard Total card
+SET @col_exists = (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts' AND COLUMN_NAME = 'include_in_total'
+);
+SET @alter_stmt = IF(@col_exists = 0,
+    'ALTER TABLE accounts ADD COLUMN include_in_total BOOLEAN NOT NULL DEFAULT FALSE',
     'SELECT 1'
 );
 PREPARE stmt FROM @alter_stmt;
