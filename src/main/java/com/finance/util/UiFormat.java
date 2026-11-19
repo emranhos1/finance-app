@@ -129,6 +129,7 @@ public final class UiFormat {
                 }
                 Label chip = new Label(label == null ? String.valueOf(item) : label.apply(item));
                 chip.getStyleClass().add("chip");
+                BanglaFont.apply(chip);   // the chip is bold; an account type name can be Bangla
                 String extra = chipClass == null ? null : chipClass.apply(item);
                 if (extra != null) chip.getStyleClass().addAll(extra.trim().split("\s+"));
                 setText(null);
