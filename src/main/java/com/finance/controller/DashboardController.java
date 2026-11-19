@@ -50,6 +50,7 @@ public class DashboardController {
     private final UserService userService;
     private final AutoBackupService autoBackupService;
     private final IGoogleDriveService googleDriveService;
+    private final com.finance.service.UpdateService updateService;
 
     @FXML
     private BorderPane mainBorderPane;
@@ -80,6 +81,82 @@ public class DashboardController {
 
     @FXML
     private Button logoutBtn;
+
+    /** Blinking "update available" item under Admin Panel; optional, a layout may leave it out. */
+    @FXML private Button updateBtn;
+    @FXML private javafx.scene.control.ProgressBar updateProgressBar;
+    private javafx.animation.Timeline updateBlink;
+
+    private void showUpdateProgress(boolean show) {
+        if (updateProgressBar == null) return;
+        updateProgressBar.setVisible(show);
+        updateProgressBar.setManaged(show);
+        if (show) updateProgressBar.setProgress(javafx.scene.control.ProgressBar.INDETERMINATE_PROGRESS);
+    }
+
+    private void setupUpdateButton() {
+        if (updateBtn == null) return;
+        if (updateBlink != null) { updateBlink.stop(); updateBlink = null; }
+        com.finance.service.UpdateService.CheckResult known = updateService.getLastResult();
+        if (known != null) {
+            showUpdateItem(known);
+            return;
+        }
+        // the Login check has not finished yet (or never ran): check in the background, a slow connection never blocks
+        Thread check = new Thread(() -> {
+            com.finance.service.UpdateService.CheckResult result = updateService.checkForUpdate();
+            javafx.application.Platform.runLater(() -> showUpdateItem(result));
+        }, "update-check-dashboard");
+        check.setDaemon(true);
+        check.start();
+    }
+
+    private void showUpdateItem(com.finance.service.UpdateService.CheckResult result) {
+        if (updateBtn == null || result == null
+                || result.getStatus() != com.finance.service.UpdateService.CheckStatus.AVAILABLE) return;
+        com.finance.service.UpdateService.ReleaseInfo release = result.getRelease();
+        String label = "Update to " + release.getVersion();
+        updateBtn.setText(label);
+        updateBtn.setVisible(true);
+        updateBtn.setManaged(true);
+        applySidebarState();   // keeps the collapsed look (icon only + tooltip) right for the new item
+
+        // fade in and out until the user clicks it
+        updateBlink = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.ZERO,
+                        new javafx.animation.KeyValue(updateBtn.opacityProperty(), 1.0)),
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(700),
+                        new javafx.animation.KeyValue(updateBtn.opacityProperty(), 0.35)));
+        updateBlink.setAutoReverse(true);
+        updateBlink.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        updateBlink.play();
+        // stop when the item leaves the window (logout, shell rebuild) so no animation keeps running in the background
+        javafx.animation.Timeline blink = updateBlink;
+        updateBtn.sceneProperty().addListener((o, a, b) -> { if (b == null) blink.stop(); });
+
+        updateBtn.setOnAction(e -> {
+            Button btn = updateBtn;
+            com.finance.util.UpdateFlow.start(btn.getScene().getWindow(), updateService, release,
+                    () -> {
+                        blink.stop();
+                        btn.setOpacity(1.0);
+                        btn.setDisable(true);
+                        btn.setText("Updating 0%");
+                        showUpdateProgress(true);
+                    },
+                    p -> {
+                        // floor, so it never shows 100% early
+                        btn.setText("Updating " + (int) Math.floor(p * 100) + "%");
+                        if (updateProgressBar != null) updateProgressBar.setProgress(p);
+                    },
+                    () -> {
+                        btn.setDisable(false);
+                        btn.setText(label);
+                        showUpdateProgress(false);
+                        blink.play();
+                    });
+        });
+    }
 
     // sidebar collapse: optional, a layout may leave any of these out
     @FXML private VBox sidebarVBox;
@@ -128,6 +205,8 @@ public class DashboardController {
         } else {
             adminBtn.setOnAction(e -> { loadView("/fxml/AdminPanel.fxml"); setActiveButton(adminBtn); });
         }
+
+        setupUpdateButton();
 
         loadView("/fxml/DashboardHome.fxml");
         setActiveButton(dashboardBtn);

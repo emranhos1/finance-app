@@ -41,6 +41,12 @@ public class ForgotPasswordController {
     private String verifiedUsername = null;
 
     @FXML
+    public void initialize() {
+        // the question label is bold and the question is typed by the user, it can be Bangla
+        com.finance.util.BanglaFont.apply(securityQuestionLabel);
+    }
+
+    @FXML
     public void handleFindAccount() {
         hideMessage();
         resetBox.setVisible(false);
