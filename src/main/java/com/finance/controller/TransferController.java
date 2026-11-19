@@ -401,13 +401,10 @@ public class TransferController {
     }
 
     private boolean confirm(String msg) {
-        Alert a = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION);
-        a.setTitle("Confirm"); a.setHeaderText(null); a.setContentText(msg);
-        Optional<ButtonType> r = a.showAndWait(); return r.isPresent() && r.get() == ButtonType.OK;
+        return com.finance.util.AppDialogs.confirm(msg);
     }
 
     private void showAlert(String title, String msg) {
-        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
-        a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
+        com.finance.util.AppDialogs.info(title, msg);
     }
 }
