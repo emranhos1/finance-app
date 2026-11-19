@@ -30,7 +30,9 @@ public final class UpdateFlow {
                              Runnable onStart, DoubleConsumer onProgress, Runnable onFailed) {
         if (release == null) return;
 
-        Preferences prefs = Preferences.userNodeForPackage(UpdateFlow.class);
+        // the same place the Login screen always saved the folder in (the package of LoginController), so the folder the
+        // owner chose before is found again, on the Login banner and in the sidebar
+        Preferences prefs = Preferences.userRoot().node("com/finance/controller");
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Where should the update " + release.getVersion() + " be downloaded?");
         File lastFolder = new File(prefs.get(DOWNLOAD_FOLDER_KEY, ""));
@@ -75,10 +77,6 @@ public final class UpdateFlow {
     }
 
     private static void alert(Alert.AlertType type, String title, String message) {
-        Alert a = new AppAlert(type);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.setContentText(message);
-        a.showAndWait();
+        AppDialogs.show(type, title, message);
     }
 }

@@ -448,8 +448,7 @@ public class ReportsController {
     }
 
     private void showAlert(String title, String message) {
-        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
-        a.setTitle(title); a.setHeaderText(null); a.setContentText(message); a.showAndWait();
+        com.finance.util.AppDialogs.info(title, message);
     }
 
     public static class CategoryRow {

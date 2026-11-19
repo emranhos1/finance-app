@@ -295,10 +295,6 @@ public class LoginController {
     }
 
     private void showAlert(String title, String message) {
-        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        com.finance.util.AppDialogs.error(title, message);
     }
 }

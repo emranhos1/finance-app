@@ -329,12 +329,7 @@ public class AdminPanelController {
     }
 
     private boolean confirm(String message) {
-        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION, message);
-        alert.setTitle("Confirm");
-        alert.setHeaderText(null);
-        alert.getDialogPane().setMinWidth(560);
-        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        return alert.showAndWait().filter(b -> b == ButtonType.OK).isPresent();
+        return com.finance.util.AppDialogs.confirm(message);
     }
 
     /** Confirm with an own OK / Cancel row: equal width, side by side, full dialog width (standard button bar hidden). */
@@ -378,10 +373,6 @@ public class AdminPanelController {
     }
 
     private void showAlert(String title, String message) {
-        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        com.finance.util.AppDialogs.info(title, message);
     }
 }

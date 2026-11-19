@@ -114,11 +114,8 @@ public class ForgotPasswordController {
 
         try {
             userService.resetPassword(verifiedUsername, newPassword);
-            Alert alert = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Password Reset");
-            alert.setHeaderText(null);
-            alert.setContentText("Your password has been reset. You can now log in with your new password.");
-            alert.showAndWait();
+            com.finance.util.AppDialogs.info("Password Reset",
+                    "Your password has been reset. You can now log in with your new password.");
             closeWindow();
         } catch (Exception e) {
             showMessage("Failed to reset password: " + e.getMessage());
