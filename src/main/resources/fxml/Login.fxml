@@ -21,10 +21,13 @@
 
     <!-- shown only when a newer release exists -->
     <VBox fx:id="updateBanner" spacing="4" visible="false" managed="false" styleClass="update-banner">
-        <Label fx:id="updateLabel" wrapText="true"/>
-        <HBox spacing="8" alignment="CENTER_LEFT">
-            <Button fx:id="updateButton" text="Update now" styleClass="btn-primary" onAction="#handleUpdate"/>
-            <Hyperlink text="What's new?" onAction="#handleShowReleaseNotes"/>
+        <!-- the card has 40 px side padding; -36 lets the banner reach the window edges (owner's red lines) -->
+        <VBox.margin><Insets left="-36" right="-36"/></VBox.margin>
+        <!-- one line: text, What's new?, Update now; the three sit together in the centre -->
+        <HBox spacing="10" alignment="CENTER">
+            <Label fx:id="updateLabel" minWidth="0"/>
+            <Hyperlink text="What's new?" minWidth="-Infinity" onAction="#handleShowReleaseNotes"/>
+            <Button fx:id="updateButton" text="Update now" minWidth="-Infinity" styleClass="btn-primary" onAction="#handleUpdate"/>
         </HBox>
         <!-- fixed height, the window is not resizable and the bar gets squeezed without it -->
         <ProgressBar fx:id="updateProgress" maxWidth="Infinity" minHeight="14" prefHeight="14" visible="false" managed="false"/>

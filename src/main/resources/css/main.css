@@ -81,17 +81,34 @@
     -fx-text-fill: -c-warn-text;
 }
 
+/* "Update to x.y.z" item in the Dashboard sidebar: gold text and icon (it blinks from the controller) */
+.sidebar-btn.sidebar-update-btn { -fx-text-fill: #F2C94C; -fx-font-weight: bold; }
+.sidebar-update-btn .sidebar-icon { -fx-stroke: #F2C94C; }
+/* thin gold bar under the update item while it downloads */
+.sidebar-update-progress { -fx-pref-height: 6; -fx-min-height: 6; -fx-max-height: 6; }
+.progress-bar.sidebar-update-progress > .track { -fx-background-color: rgba(255, 255, 255, 0.18); -fx-background-insets: 0; -fx-background-radius: 3; }
+.progress-bar.sidebar-update-progress > .bar { -fx-background-color: #F2C94C; -fx-background-insets: 0; -fx-background-radius: 3; -fx-padding: 3; }
+
 /* update banner on the Login screen, same variables */
 .update-banner {
     -fx-background-color: -c-warn-bg;
     -fx-border-color: -c-warn-border;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
-    -fx-padding: 8;
+    -fx-padding: 5 8 5 8;
 }
+/* one-line banner: smaller text, link and button (3 classes on the button so it beats the theme's ".button.btn-primary") */
 .update-banner .label {
     -fx-text-fill: -c-warn-text;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
+}
+.update-banner .hyperlink { -fx-font-size: 11px; -fx-padding: 0; }
+.update-banner .button.btn-primary {
+    -fx-min-height: 24;
+    -fx-pref-height: 24;
+    -fx-font-size: 11px;
+    -fx-padding: 0 10 0 10;
 }
 
 /* sidebar */

@@ -62,8 +62,48 @@ public class UpdateService {
         private ReleaseInfo release;
     }
 
+    /** The result of the last check (null before the first one); the Dashboard reads it to show its update item. */
+    private volatile CheckResult lastResult;
+
+    public CheckResult getLastResult() { return lastResult; }
+
+    /**
+     * Dev switch to test the update screens without a real release: start the app with
+     * -Ddfms.fakeUpdate=9.9.9 (or the environment variable DFMS_FAKE_UPDATE=9.9.9). Returns that version, or null.
+     */
+    public String fakeUpdateVersion() {
+        String v = System.getProperty("dfms.fakeUpdate");
+        if (v == null || v.isBlank()) v = System.getenv("DFMS_FAKE_UPDATE");
+        return v == null || v.isBlank() ? null : stripV(v.trim());
+    }
+
+    public boolean isFake(ReleaseInfo release) {
+        return release != null && FAKE_URL.equals(release.getInstallerUrl());
+    }
+
+    private static final String FAKE_URL = "fake://dfms-test-update";
+
+    private CheckResult fakeResult(String version) {
+        String notes = "Test update " + version + " (dev switch, not a real release).";
+        try {
+            Path file = Path.of("release-notes", "v" + version + ".md");
+            if (Files.isRegularFile(file)) notes = Files.readString(file, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.info("Fake update: could not read the release notes: {}", e.toString());
+        }
+        return new CheckResult(CheckStatus.AVAILABLE, new ReleaseInfo(version, notes, FAKE_URL, null));
+    }
+
     /** Never throws; any error comes back as FAILED. */
     public CheckResult checkForUpdate() {
+        CheckResult result = doCheckForUpdate();
+        lastResult = result;
+        return result;
+    }
+
+    private CheckResult doCheckForUpdate() {
+        String fake = fakeUpdateVersion();
+        if (fake != null) return fakeResult(fake);
         // unfiltered placeholder means an IDE run, no updates
         if (currentVersion == null || currentVersion.contains("@")) return new CheckResult(CheckStatus.NOT_CHECKED, null);
         try {
@@ -102,6 +142,13 @@ public class UpdateService {
     /** Downloads the installer, checks SHA-256 if present, reuses an intact existing file. */
     public Path downloadInstaller(ReleaseInfo release, Path folder, DoubleConsumer progress) throws IOException, InterruptedException {
         Path target = folder.resolve(UPDATE_ASSET_PREFIX + release.getVersion() + ".exe");
+        if (isFake(release)) {   // dev switch: only simulate the progress, nothing is downloaded
+            for (int i = 1; i <= 20; i++) {
+                progress.accept(i / 20.0);
+                Thread.sleep(150);
+            }
+            return target;
+        }
         String expected = release.getChecksumUrl() != null ? fetchExpectedChecksum(release) : null;
         if (expected != null && Files.isRegularFile(target) && expected.equalsIgnoreCase(sha256Of(target))) {
             progress.accept(1.0);
@@ -137,6 +184,7 @@ public class UpdateService {
 
     /** Deletes old installers the app downloaded, except keep. Only recorded paths are touched. */
     public void deleteOldDownloads(Path keep) {
+        if (fakeUpdateVersion() != null) return;   // dev switch: never touch real files
         Path keepPath = keep.toAbsolutePath().normalize();
         List<String> stillThere = new ArrayList<>();
         for (String recorded : recordedDownloads()) {

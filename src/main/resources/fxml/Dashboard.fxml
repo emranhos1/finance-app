@@ -3,6 +3,7 @@
 <?import javafx.scene.Group?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
@@ -52,6 +53,13 @@
             <Button fx:id="adminBtn" text="Admin Panel" styleClass="sidebar-btn" maxWidth="Infinity">
                 <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></Group></graphic>
             </Button>
+
+            <!-- shown (and blinking) only when a newer version exists and the user has not updated; click starts the update -->
+            <Button fx:id="updateBtn" text="Update available" styleClass="sidebar-btn, sidebar-update-btn" maxWidth="Infinity" visible="false" managed="false">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M12 3v12 M7 10l5 5 5-5 M4 21h16"/></Group></graphic>
+            </Button>
+            <!-- thin bar under the update item, shown only while downloading -->
+            <ProgressBar fx:id="updateProgressBar" styleClass="sidebar-update-progress" maxWidth="Infinity" visible="false" managed="false"/>
 
             <Region VBox.vgrow="ALWAYS"/>
 
