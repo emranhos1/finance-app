@@ -135,6 +135,10 @@ public class DashboardController {
         updateBtn.sceneProperty().addListener((o, a, b) -> { if (b == null) blink.stop(); });
 
         updateBtn.setOnAction(e -> {
+            // ask first: after the download the app closes and the installer starts
+            if (!com.finance.util.FullWidthConfirm.ask("Update to " + release.getVersion() + "?\n\n"
+                    + "The app will download the new version, then close and start the installer. "
+                    + "Your data is not touched.\n\nContinue?")) return;
             Button btn = updateBtn;
             com.finance.util.UpdateFlow.start(btn.getScene().getWindow(), updateService, release,
                     () -> {
