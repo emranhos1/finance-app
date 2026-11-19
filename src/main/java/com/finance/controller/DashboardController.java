@@ -136,7 +136,7 @@ public class DashboardController {
 
         updateBtn.setOnAction(e -> {
             // ask first: after the download the app closes and the installer starts
-            if (!com.finance.util.FullWidthConfirm.ask("Update to " + release.getVersion() + "?\n\n"
+            if (!com.finance.util.AppDialogs.confirm("Update to " + release.getVersion() + "?\n\n"
                     + "The app will download the new version, then close and start the installer. "
                     + "Your data is not touched.\n\nContinue?")) return;
             Button btn = updateBtn;
@@ -342,8 +342,7 @@ public class DashboardController {
     }
 
     private void showAlert(String title, String msg) {
-        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
-        a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
+        com.finance.util.AppDialogs.info(title, msg);
     }
 
     private void handleLogout() {
