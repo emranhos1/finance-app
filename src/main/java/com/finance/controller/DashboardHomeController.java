@@ -849,11 +849,8 @@ public class DashboardHomeController {
     private void handleRecalculateIncome(YearMonth ym, BigDecimal currentAmount, Long userId, List<Account> accounts) {
         BigDecimal recalculated = monthlyExpenseOverrideService.calculateIncome(userId, accounts, ym);
         if (recalculated.compareTo(currentAmount) == 0) {
-            Alert info = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION,
+            com.finance.util.AppDialogs.info("Recalculate",
                     ym.format(FULL_MONTH_FMT) + " — income is already up to date (" + fmt(currentAmount) + ").");
-            info.setTitle("Recalculate");
-            info.setHeaderText(null);
-            info.showAndWait();
             return;
         }
         Alert confirm = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION,
@@ -894,11 +891,8 @@ public class DashboardHomeController {
     private void handleRecalculateMonth(YearMonth ym, String typeName, BigDecimal currentAmount, Long userId, List<Account> accounts) {
         BigDecimal recalculated = transactionService.getEffectiveExpense(userId, accounts, typeName, ym.atDay(1), ym.atEndOfMonth());
         if (recalculated.compareTo(currentAmount) == 0) {
-            Alert info = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION,
+            com.finance.util.AppDialogs.info("Recalculate",
                     ym.format(FULL_MONTH_FMT) + " — " + typeName + " is already up to date (" + fmt(currentAmount) + ").");
-            info.setTitle("Recalculate");
-            info.setHeaderText(null);
-            info.showAndWait();
             return;
         }
         Alert confirm = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION,
@@ -937,10 +931,7 @@ public class DashboardHomeController {
     }
 
     private void showValidationError(String message) {
-        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.ERROR, message);
-        alert.setTitle("Invalid amount");
-        alert.setHeaderText(null);
-        alert.showAndWait();
+        com.finance.util.AppDialogs.error("Invalid amount", message);
     }
 
     /** "-" when there was no income. Not capped at 100. */
