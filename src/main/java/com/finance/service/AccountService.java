@@ -57,9 +57,25 @@ public class AccountService {
         return accountRepository.findByUserId(userId);
     }
 
+    /** Accounts that are not closed: the ones a new transaction, transfer or loan may use. */
+    public List<Account> getOpenAccountsByUserId(Long userId) {
+        List<Account> open = new java.util.ArrayList<>();
+        for (Account account : accountRepository.findByUserId(userId)) {
+            if (!Boolean.TRUE.equals(account.getClosed())) open.add(account);
+        }
+        return open;
+    }
+
+    /** Refuses any change to a closed (matured) account. */
+    public void requireOpen(Account account) {
+        if (Boolean.TRUE.equals(account.getClosed()))
+            throw new IllegalArgumentException("Account '" + account.getName() + "' is closed (matured).");
+    }
+
     public Account updateAccount(Long accountId, String name, Long accountTypeId, BigDecimal newBalance,
                                  LocalDate maturityDate, BigDecimal installmentAmount, BigDecimal lowBalanceThreshold) {
         Account account = getAccountById(accountId);
+        requireOpen(account);
         AccountType accountType = accountTypeRepository.findById(accountTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("Account type not found"));
         BigDecimal oldBalance = account.getBalance();
@@ -138,7 +154,7 @@ public class AccountService {
 
     public List<Account> getAccountsBelowThreshold(Long userId) {
         List<Account> result = new java.util.ArrayList<>();
-        for (Account account : getAccountsByUserId(userId)) {
+        for (Account account : getOpenAccountsByUserId(userId)) {
             if (account.getLowBalanceThreshold() != null
                     && account.getBalance().compareTo(account.getLowBalanceThreshold()) < 0) {
                 result.add(account);
@@ -149,6 +165,10 @@ public class AccountService {
 
     public List<Account> getUpcomingMaturities(Long userId, int daysAhead) {
         LocalDate cutoff = LocalDate.now().plusDays(daysAhead);
-        return accountRepository.findByUserIdAndMaturityDateNotNullAndMaturityDateLessThanEqual(userId, cutoff);
+        List<Account> upcoming = new java.util.ArrayList<>();
+        for (Account account : accountRepository.findByUserIdAndMaturityDateNotNullAndMaturityDateLessThanEqual(userId, cutoff)) {
+            if (!Boolean.TRUE.equals(account.getClosed())) upcoming.add(account);
+        }
+        return upcoming;
     }
 }

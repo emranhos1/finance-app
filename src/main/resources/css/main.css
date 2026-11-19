@@ -1,20 +1,102 @@
-/* Bangla-capable font, the default OS font can show empty boxes on some Windows installs */
+/*
+ * Layout, spacing and shapes live here. All colours come from the -c-* variables below.
+ * The default values are the Emerald theme. The other themes (css/themes/*.css) only
+ * override these variables, ThemeManager adds the chosen one after this file.
+ */
 .root {
+    /* Bangla-capable font, the default OS font can show empty boxes on some Windows installs */
     -fx-font-family: "Nirmala UI", "Segoe UI", "Vrinda", "Noto Sans Bengali", sans-serif;
+
+    -fx-background: #F3F8F6;
+
+    -c-sidebar: #1B5446;
+    -c-sidebar-hover: #216E59;
+    -c-sidebar-active: #0F3B30;
+    -c-sidebar-text: #d9ece6;
+    -c-sidebar-active-text: #ffffff;
+    -c-sidebar-line: #D4AF37;
+    -c-accent: #D4AF37;
+    -c-accent-dark: #c29c28;
+    -c-on-accent: #1B5446;
+    -c-primary: #216E59;
+    -c-primary-dark: #1B5446;
+    -c-on-primary: #ffffff;
+    -c-title: #1B5446;
+    -c-surface: #ffffff;
+    -c-border: #B7D9CE;
+    -c-border-soft: #E4ECE9;
+    -c-soft: #EEF3F1;
+    -c-tint: #eef6f3;
+    -c-text: #26362F;
+    -c-muted: #555555;
+    -c-faint: #8AA69C;
+    -c-hint: #4F6F66;
+    -c-row-total: #EAF3F0;
+    -c-row-avg: #E3EEFB;
+    -c-info: #1D5FA8;
+    -c-positive: #1E7B45;
+    -c-negative: #C0392B;
+    -c-restore: #1E8E6E;
+    -c-restore-hover: #0F5D45;
+    -c-pen: #2F6FA8;
+    -c-pen-hover: #1A4A78;
+    -c-range: #CFE9DF;
+
+    /* alert banners (loan reminder toast, update banner); dark themes override these */
+    -c-warn-bg: #FFF3CD;
+    -c-warn-border: #E0A81C;
+    -c-warn-text: #4A3A00;
+
+    /* chips: soft background + text colour per kind */
+    -c-chip-bg: #EEF3F1;
+    -c-chip-text: #3D524A;
+    -c-chip-income-bg: #E1F5EC;
+    -c-chip-income-text: #1B6E3E;
+    -c-chip-expense-bg: #FBE7E9;
+    -c-chip-expense-text: #B03A46;
+    -c-chip-transfer-bg: #E3EEFB;
+    -c-chip-transfer-text: #1D5FA8;
+    -c-chip-open-bg: #FBF1D9;
+    -c-chip-open-text: #9C7A16;
+    -c-chip-closed-bg: #EDF3F0;
+    -c-chip-closed-text: #3D524A;
+
+    /* trend chart and legend: income green/teal, expense red/rose */
+    -c-chart-income: #1E9E6A;
+    -c-chart-expense: #E0566B;
+    -c-chart-grid: #E4ECE9;
+    -c-chart-text: #555555;
+}
 }
 
-/* loan reminder toast */
+/* loan reminder toast; colours come from the -c-warn-* variables so dark themes get a dark amber box */
 .dash-loan-toast {
-    -fx-background-color: #FFF3CD;
-    -fx-border-color: #E0A81C;
+    -fx-background-color: -c-warn-bg;
+    -fx-border-color: -c-warn-border;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-padding: 8 12;
 }
+.dash-loan-toast .label {
+    -fx-text-fill: -c-warn-text;
+}
+
+/* update banner on the Login screen, same variables */
+.update-banner {
+    -fx-background-color: -c-warn-bg;
+    -fx-border-color: -c-warn-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 8;
+}
+.update-banner .label {
+    -fx-text-fill: -c-warn-text;
+    -fx-font-weight: bold;
+}
 
 /* sidebar */
 .sidebar {
-    -fx-background-color: #1B5446;
+    -fx-background-color: -c-sidebar;
     -fx-padding: 10;
     -fx-spacing: 6;
 }
@@ -23,22 +105,22 @@
     -fx-pref-width: 135;
     -fx-padding: 10 8;
     -fx-background-color: transparent;
-    -fx-text-fill: #d9ece6;
+    -fx-text-fill: -c-sidebar-text;
     -fx-font-size: 13;
     -fx-cursor: hand;
     -fx-alignment: CENTER-LEFT;
 }
 
 .sidebar-btn:hover {
-    -fx-background-color: #216E59;
-    -fx-text-fill: #ffffff;
+    -fx-background-color: -c-sidebar-hover;
+    -fx-text-fill: -c-sidebar-active-text;
 }
 
 .sidebar-btn-active {
-    -fx-background-color: #0F3B30;
-    -fx-text-fill: #ffffff;
+    -fx-background-color: -c-sidebar-active;
+    -fx-text-fill: -c-sidebar-active-text;
     -fx-font-weight: bold;
-    -fx-border-color: #D4AF37;
+    -fx-border-color: -c-sidebar-line;
     -fx-border-width: 0 0 0 3;
 }
 
@@ -49,9 +131,9 @@
 }
 
 .page-title {
-    -fx-font-size: 18;
+    -fx-font-size: 24;
     -fx-font-weight: bold;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 
 .form-pane {
@@ -64,11 +146,79 @@
     -fx-padding: 12;
 }
 
+/* small grey notes under fields, and boxes on the Reports tab */
+.hint-label {
+    -fx-font-size: 11;
+    -fx-text-fill: -c-hint;
+}
+.hint-text {
+    -fx-text-fill: -c-hint;
+}
+.report-box {
+    -fx-border-color: -c-border;
+    -fx-padding: 10;
+    -fx-background-color: -c-surface;
+}
+
+/* date range popup */
+.date-range-popup {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-border;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0, 0, 2);
+}
+.date-range-hint {
+    -fx-font-size: 11;
+    -fx-text-fill: -c-muted;
+    -fx-padding: 4 6 4 6;
+}
+.date-range-in-range {
+    -fx-background-color: -c-range;
+    -fx-text-fill: -c-title;
+    -fx-font-weight: bold;
+}
+
+/* logout popup: the dialog has its own title bar now (DialogChrome), so the content is plain, like the other dialogs */
+.logout-box {
+    -fx-background-color: -c-surface;
+}
+
+/* Theme tab */
+.theme-card {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-spacing: 8;
+    -fx-cursor: hand;
+}
+.theme-card:hover {
+    -fx-border-color: -c-primary;
+}
+.theme-card-selected {
+    -fx-border-color: -c-primary;
+    -fx-border-width: 2;
+}
+.theme-card-name {
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-title;
+}
+.theme-card-desc {
+    -fx-font-size: 12;
+    -fx-text-fill: -c-muted;
+}
+.theme-card-check {
+    -fx-font-size: 12;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary;
+}
+
 /* dashboard cards */
 .summary-card {
-    -fx-border-color: #B7D9CE;
+    -fx-border-color: -c-border;
     -fx-border-radius: 5;
-    -fx-background-color: #ffffff;
+    -fx-background-color: -c-surface;
     -fx-background-radius: 5;
     -fx-padding: 14;
 }
@@ -76,61 +226,61 @@
 .card-title {
     -fx-font-size: 13;
     -fx-font-weight: bold;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 
 .card-label {
-    -fx-text-fill: #555555;
+    -fx-text-fill: -c-muted;
 }
 
 .net-label {
     -fx-font-weight: bold;
-    -fx-text-fill: #216E59;
+    -fx-text-fill: -c-primary;
 }
 
 /* brand buttons */
 .btn-primary {
-    -fx-background-color: #216E59;
-    -fx-text-fill: #ffffff;
+    -fx-background-color: -c-primary;
+    -fx-text-fill: -c-on-primary;
     -fx-background-radius: 4;
     -fx-cursor: hand;
 }
 
 .btn-primary:hover {
-    -fx-background-color: #1B5446;
+    -fx-background-color: -c-primary-dark;
 }
 
 .btn-secondary {
-    -fx-background-color: #ffffff;
-    -fx-text-fill: #216E59;
-    -fx-border-color: #216E59;
+    -fx-background-color: -c-surface;
+    -fx-text-fill: -c-primary;
+    -fx-border-color: -c-primary;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-cursor: hand;
 }
 
 .btn-secondary:hover {
-    -fx-background-color: #eef6f3;
+    -fx-background-color: -c-tint;
 }
 
 .btn-accent {
-    -fx-background-color: #D4AF37;
-    -fx-text-fill: #1B5446;
+    -fx-background-color: -c-accent;
+    -fx-text-fill: -c-on-accent;
     -fx-background-radius: 4;
     -fx-cursor: hand;
     -fx-font-weight: bold;
 }
 
 .btn-accent:hover {
-    -fx-background-color: #c29c28;
+    -fx-background-color: -c-accent-dark;
 }
 
 /* brand text */
 .app-title {
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 
-/* splash screen */
+/* splash screen, always the Emerald look (it is shown before a theme is applied) */
 .splash-root {
     -fx-background-color: transparent;
 }
@@ -169,13 +319,12 @@
 .sidebar-logo-text {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
-    -fx-letter-spacing: 1px;
+    -fx-text-fill: -c-sidebar-active-text;
 }
 
 /* calculator */
 .calc-error-label {
-    -fx-text-fill: #c0392b;
+    -fx-text-fill: -c-negative;
     -fx-font-size: 12px;
 }
 
@@ -186,10 +335,16 @@
 
 /* backup and restore */
 .backup-status-success {
-    -fx-text-fill: #1E7B45;
+    -fx-text-fill: -c-positive;
 }
 .backup-status-error {
-    -fx-text-fill: #c0392b;
+    -fx-text-fill: -c-negative;
+}
+
+/* login version label */
+.version-label {
+    -fx-font-size: 10;
+    -fx-text-fill: -c-faint;
 }
 
 /* dashboard */
@@ -202,44 +357,44 @@
 
 /* compact variants for the Dashboard only, so Calculator and Forgot Password keep the normal cards */
 .dash-summary-card {
-    -fx-border-color: #B7D9CE;
+    -fx-border-color: -c-border;
     -fx-border-radius: 5;
-    -fx-background-color: #ffffff;
+    -fx-background-color: -c-surface;
     -fx-background-radius: 5;
     -fx-padding: 7;
 }
 .dash-card-title {
     -fx-font-size: 11;
     -fx-font-weight: bold;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 .dash-card-label {
     -fx-font-size: 11;
-    -fx-text-fill: #555555;
+    -fx-text-fill: -c-muted;
 }
 
 .dash-section-title {
     -fx-font-size: 13;
     -fx-font-weight: bold;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 
 .dash-section-hint {
     -fx-font-size: 10;
-    -fx-text-fill: #8AA69C;
+    -fx-text-fill: -c-faint;
 }
 
 .dash-table-head {
     -fx-font-size: 10;
-    -fx-text-fill: #8AA69C;
+    -fx-text-fill: -c-faint;
     -fx-font-weight: bold;
 }
 
 /* account cards */
 .dash-account-card {
-    -fx-background-color: #ffffff;
+    -fx-background-color: -c-surface;
     -fx-background-radius: 10;
-    -fx-border-color: #E4ECE9;
+    -fx-border-color: -c-border-soft;
     -fx-border-radius: 10;
     -fx-padding: 8;
 }
@@ -247,13 +402,13 @@
 .dash-account-type {
     -fx-font-size: 13;
     -fx-font-weight: bold;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 
 .dash-account-amount {
     -fx-font-size: 15;
     -fx-font-weight: 800;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 
 .dash-badge {
@@ -265,6 +420,7 @@
     -fx-font-weight: bold;
     -fx-font-size: 12;
 }
+/* badges and icons are pastel circles with their own dark text, the same in every theme */
 .badge-teal   { -fx-background-color: #DCEFE8; -fx-text-fill: #1B5446; }
 .badge-gold   { -fx-background-color: #FBF1D9; -fx-text-fill: #9C7A16; }
 .badge-blue   { -fx-background-color: #E3EEFB; -fx-text-fill: #1D5FA8; }
@@ -277,26 +433,26 @@
     -fx-padding: 2 4;
 }
 .dash-monthly-row-total {
-    -fx-background-color: #EAF3F0;
+    -fx-background-color: -c-row-total;
     -fx-background-radius: 4;
     -fx-padding: 3 6;
 }
 .dash-monthly-row-avg {
-    -fx-background-color: #E3EEFB;
+    -fx-background-color: -c-row-avg;
     -fx-background-radius: 4;
     -fx-padding: 3 6;
 }
 .dash-monthly-value-saved {
     -fx-font-size: 11;
     -fx-font-weight: bold;
-    -fx-text-fill: #1D5FA8;
+    -fx-text-fill: -c-info;
 }
 .dash-monthly-pct {
     -fx-font-size: 10;
-    -fx-text-fill: #8AA69C;
+    -fx-text-fill: -c-faint;
 }
 .dash-monthly-pct-over {
-    -fx-text-fill: #C0392B;
+    -fx-text-fill: -c-negative;
     -fx-font-weight: bold;
 }
 .dash-monthly-edit-btn {
@@ -304,24 +460,24 @@
     -fx-border-color: transparent;
     -fx-padding: 0 2;
     -fx-font-size: 11;
-    -fx-text-fill: #8AA69C;
+    -fx-text-fill: -c-faint;
     -fx-cursor: hand;
 }
 .dash-monthly-edit-btn:hover {
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
 }
 /* restore (recalculate) = green, edit (pen) = blue; same size as before so the table rows keep their height */
 .dash-monthly-restore-btn {
-    -fx-text-fill: #1E8E6E;
+    -fx-text-fill: -c-restore;
 }
 .dash-monthly-restore-btn:hover {
-    -fx-text-fill: #0F5D45;
+    -fx-text-fill: -c-restore-hover;
 }
 .dash-monthly-pen-btn {
-    -fx-text-fill: #2F6FA8;
+    -fx-text-fill: -c-pen;
 }
 .dash-monthly-pen-btn:hover {
-    -fx-text-fill: #1A4A78;
+    -fx-text-fill: -c-pen-hover;
 }
 /* Total card: plus button to choose the accounts */
 .dash-total-add-btn {
@@ -330,43 +486,43 @@
     -fx-padding: 0 8;
     -fx-font-size: 24;
     -fx-font-weight: bold;
-    -fx-text-fill: #1B5446;
+    -fx-text-fill: -c-title;
     -fx-cursor: hand;
 }
 .dash-total-add-btn:hover {
-    -fx-text-fill: #1E8E6E;
+    -fx-text-fill: -c-restore;
 }
 
 /* recent transactions */
 .dash-tx-row {
     -fx-padding: 3 0 3 0;
-    -fx-border-color: transparent transparent #EEF3F1 transparent;
+    -fx-border-color: transparent transparent -c-soft transparent;
     -fx-border-width: 0 0 1 0;
 }
 
 .dash-tx-icon {
-    -fx-min-width: 22; -fx-min-height: 22;
-    -fx-max-width: 22; -fx-max-height: 22;
-    -fx-pref-width: 22; -fx-pref-height: 22;
-    -fx-background-radius: 7;
+    -fx-min-width: 16; -fx-min-height: 16;
+    -fx-max-width: 16; -fx-max-height: 16;
+    -fx-pref-width: 16; -fx-pref-height: 16;
+    -fx-background-radius: 5;
     -fx-alignment: CENTER;
     -fx-font-weight: bold;
-    -fx-font-size: 11;
+    -fx-font-size: 9;
 }
 .dash-tx-icon-in       { -fx-background-color: #E1F5EC; -fx-text-fill: #1E7B45; }
 .dash-tx-icon-out      { -fx-background-color: #FBE7E9; -fx-text-fill: #C0392B; }
 .dash-tx-icon-transfer { -fx-background-color: #E3EEFB; -fx-text-fill: #1D5FA8; }
 
-.dash-tx-title { -fx-font-size: 11; -fx-text-fill: #26362F; }
+.dash-tx-title { -fx-font-size: 11; -fx-text-fill: -c-text; }
 
-.dash-tx-amount-pos     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #1E7B45; }
-.dash-tx-amount-neg     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #C0392B; }
-.dash-tx-amount-neutral { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #26362F; }
+.dash-tx-amount-pos     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: -c-positive; }
+.dash-tx-amount-neg     { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: -c-negative; }
+.dash-tx-amount-neutral { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: -c-text; }
 
 /* expense ratio ring */
 .dash-ring-track {
     -fx-fill: transparent;
-    -fx-stroke: #EEF3F1;
+    -fx-stroke: -c-soft;
     -fx-stroke-width: 6;
 }
 .dash-ring-progress {
@@ -374,9 +530,469 @@
     -fx-stroke: #D9636E;
     -fx-stroke-width: 6;
 }
-.dash-ring-label { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: #26362F; }
-.dash-ring-sub   { -fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1B5446; }
+.dash-ring-label { -fx-font-size: 11; -fx-font-weight: bold; -fx-text-fill: -c-text; }
+.dash-ring-sub   { -fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: -c-title; }
 
-.dash-top-expense-label { -fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1B5446; }
-.dash-top-expense-value { -fx-font-size: 12; -fx-text-fill: #26362F; }
+.dash-top-expense-label { -fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: -c-title; }
+.dash-top-expense-value { -fx-font-size: 12; -fx-text-fill: -c-text; }
 
+/* ===== Top bar shell (used by themes with navigation across the top) ===== */
+.topbar {
+    -fx-background-color: -c-sidebar;
+    -fx-border-color: transparent transparent -c-border-soft transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 24 0 24;
+    -fx-spacing: 4;
+    -fx-min-height: 64;
+    -fx-pref-height: 64;
+}
+.topbar-logo {
+    -fx-background-color: -c-primary;
+    -fx-background-radius: 10;
+    -fx-min-width: 34; -fx-min-height: 34;
+    -fx-max-width: 34; -fx-max-height: 34;
+}
+.topbar-logo-text {
+    -fx-text-fill: -c-on-primary;
+    -fx-font-weight: 800;
+    -fx-font-size: 15;
+}
+.topbar-title {
+    -fx-font-size: 17;
+    -fx-font-weight: 800;
+    -fx-text-fill: -c-title;
+    -fx-padding: 0 0 0 10;
+}
+.topbar-btn {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999;
+    -fx-text-fill: -c-sidebar-text;
+    -fx-font-size: 13;
+    -fx-padding: 8 14;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 8;
+}
+.topbar-btn:hover {
+    -fx-background-color: -c-sidebar-hover;
+}
+.topbar-btn.sidebar-btn-active {
+    -fx-background-color: -c-sidebar-active;
+    -fx-text-fill: -c-sidebar-active-text;
+    -fx-font-weight: bold;
+    -fx-border-width: 0;
+}
+.topbar-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -c-sidebar-text;
+    -fx-stroke-width: 2.4;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.topbar-btn.sidebar-btn-active .topbar-icon {
+    -fx-stroke: -c-sidebar-active-text;
+}
+
+/* ===== Cards and form fields used by the re-laid-out pages ===== */
+.panel-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 16;
+    -fx-border-color: -c-border-soft;
+    -fx-border-radius: 16;
+    -fx-padding: 18;
+}
+.page-subtitle {
+    -fx-font-size: 13;
+    -fx-text-fill: -c-muted;
+}
+/* page heading block: .page-title (24px) above .page-subtitle (13px) */
+.field-label {
+    -fx-font-size: 12;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-muted;
+}
+
+/* ===== Pill tabs ===== */
+.seg-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+}
+.seg-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: -c-soft;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999;
+    -fx-padding: 4 14;
+    -fx-cursor: hand;
+}
+.seg-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -c-primary;
+}
+.seg-tabs > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: -c-muted;
+    -fx-font-weight: bold;
+}
+.seg-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: -c-on-primary;
+}
+.seg-tabs > .tab-header-area > .tab-header-background {
+    -fx-opacity: 0;
+}
+.seg-tabs > .tab-content-area {
+    -fx-background-color: transparent;
+    -fx-padding: 6 0 0 0;
+}
+
+/* ===== Table amounts and chips (cell factories in com.finance.util.UiFormat) ===== */
+.table-cell.amount {
+    -fx-alignment: CENTER-RIGHT;
+    -fx-font-weight: bold;
+}
+.table-cell.amount-pos { -fx-text-fill: -c-positive; }
+.table-cell.amount-neg { -fx-text-fill: -c-negative; }
+.table-row-cell:selected .table-cell.amount-pos,
+.table-row-cell:selected .table-cell.amount-neg { -fx-font-weight: bold; }
+
+.chip {
+    -fx-background-color: -c-chip-bg;
+    -fx-text-fill: -c-chip-text;
+    -fx-background-radius: 999;
+    -fx-padding: 2 10 2 10;
+    -fx-font-size: 12;
+    -fx-font-weight: bold;
+}
+.chip-income   { -fx-background-color: -c-chip-income-bg;   -fx-text-fill: -c-chip-income-text; }
+.chip-expense  { -fx-background-color: -c-chip-expense-bg;  -fx-text-fill: -c-chip-expense-text; }
+.chip-transfer { -fx-background-color: -c-chip-transfer-bg; -fx-text-fill: -c-chip-transfer-text; }
+.chip-open     { -fx-background-color: -c-chip-open-bg;     -fx-text-fill: -c-chip-open-text; }
+.chip-closed   { -fx-background-color: -c-chip-closed-bg;   -fx-text-fill: -c-chip-closed-text; }
+
+/* ===== Reports trend chart and legend (solid lines, colours from variables) ===== */
+.legend-income  { -fx-background-color: -c-chart-income; }
+.legend-expense { -fx-background-color: -c-chart-expense; }
+
+.trend-chart .default-color0.chart-series-line { -fx-stroke: -c-chart-income; -fx-stroke-width: 2; -fx-stroke-dash-array: null; }
+.trend-chart .default-color1.chart-series-line { -fx-stroke: -c-chart-expense; -fx-stroke-width: 2; -fx-stroke-dash-array: null; }
+.trend-chart .default-color0.chart-line-symbol { -fx-background-color: -c-chart-income, -c-surface; }
+.trend-chart .default-color1.chart-line-symbol { -fx-background-color: -c-chart-expense, -c-surface; }
+
+/* all charts: axis text, grid and plot background from the theme variables */
+.chart-content { -fx-padding: 6; }
+.chart-plot-background { -fx-background-color: transparent; }
+.chart .axis { -fx-tick-label-fill: -c-chart-text; }
+.chart .axis-label { -fx-text-fill: -c-chart-text; }
+.chart-vertical-grid-lines,
+.chart-horizontal-grid-lines { -fx-stroke: -c-chart-grid; }
+.chart-horizontal-zero-line,
+.chart-vertical-zero-line { -fx-stroke: -c-border; }
+.chart .axis:top, .chart .axis:bottom, .chart .axis:left, .chart .axis:right { -fx-border-color: -c-border; }
+.chart .axis-tick-mark, .chart .axis-minor-tick-mark { -fx-stroke: -c-border; }
+.chart-title { -fx-text-fill: -c-title; }
+
+/* ===== Dialogs and alerts ===== */
+.dialog-pane {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-border;
+    -fx-border-width: 1;
+}
+.dialog-pane > .content.label,
+.dialog-pane > .content .label {
+    -fx-text-fill: -c-text;
+}
+.dialog-pane > .header-panel {
+    -fx-background-color: -c-soft;
+}
+.dialog-pane > .header-panel .label { -fx-text-fill: -c-title; }
+.dialog-pane > .button-bar > .container {
+    -fx-background-color: -c-surface;
+}
+.dialog-pane > .button-bar .button {
+    -fx-background-color: -c-surface;
+    -fx-text-fill: -c-primary;
+    -fx-border-color: -c-primary;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+.dialog-pane > .button-bar .button:default {
+    -fx-background-color: -c-primary;
+    -fx-text-fill: -c-on-primary;
+}
+.dialog-pane > .button-bar .button:hover { -fx-background-color: -c-tint; }
+.dialog-pane > .button-bar .button:default:hover { -fx-background-color: -c-primary-dark; }
+
+/* ===== Date range field (a Button) ===== */
+.date-range-field {
+    -fx-background-color: -c-surface;
+    -fx-text-fill: -c-text;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-alignment: CENTER-LEFT;
+    -fx-cursor: hand;
+}
+.date-range-field:hover { -fx-border-color: -c-primary; }
+.date-range-field:focused { -fx-border-color: -c-primary; }
+
+/* ===== Separators ===== */
+.separator:horizontal .line { -fx-border-color: -c-border-soft; -fx-border-width: 1 0 0 0; -fx-background-color: transparent; }
+.separator:vertical .line { -fx-border-color: -c-border-soft; -fx-border-width: 0 0 0 1; -fx-background-color: transparent; }
+
+/* ===== Standard (Emerald) sidebar: line icons and the text wordmark tile ===== */
+.sidebar-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -c-sidebar-text;
+    -fx-stroke-width: 1.8;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.sidebar-btn:hover .sidebar-icon,
+.sidebar-btn-active .sidebar-icon { -fx-stroke: -c-sidebar-active-text; }
+.sidebar-logo-tile {
+    -fx-background-color: #d4af37;
+    -fx-background-radius: 11;
+}
+.sidebar-logo-tile-text { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #14463a; }
+.btn-danger {
+    -fx-background-color: -c-surface;
+    -fx-text-fill: -c-negative;
+    -fx-border-color: -c-negative;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+/* Dashboard banner warning glyph, ring box (size, padding and stroke come from the stylesheet), top expense amount */
+.banner-icon { -fx-font-size: 14; }
+.dash-ring-box {
+    -fx-pref-width: 96px; -fx-pref-height: 96px;
+    -fx-min-width: 96px; -fx-min-height: 96px;
+    -fx-max-width: 96px; -fx-max-height: 96px;
+    -fx-padding: 4px;
+}
+.dash-top-expense-amount { -fx-font-size: 13; -fx-text-fill: -c-muted; }
+.label.dash-top-expense-value.dash-top-expense-none { -fx-font-size: 13; -fx-font-weight: normal; -fx-text-fill: -c-muted; }
+
+/* ===== Login screen: ONE definition for every theme (font SIZES, box sizes, spacing; the font family stays the theme's own). Colours stay theme-driven. =====
+   The Login root node is ".root .login-card"; every selector starts with it (4 classes) so no theme rule such as paper's ".root .button.btn-primary" can override it. */
+.root .login-card {
+    -fx-font-size: 13px;
+    -fx-padding: 16 40 14 40;
+}
+.root .login-card .app-title.login-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+.root .login-card .label.login-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: normal;
+    -fx-min-width: 72; -fx-pref-width: 72;
+}
+.root .login-card .login-field.text-field, .root .login-card .login-field.password-field {
+    -fx-font-size: 14px;
+    -fx-min-height: 40; -fx-pref-height: 40;
+    -fx-padding: 0 12 0 12;
+}
+.root .login-card .button.login-btn {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-min-width: 100; -fx-pref-width: 150;
+    -fx-min-height: 44; -fx-pref-height: 44;
+    -fx-padding: 0 20 0 20;
+}
+.root .login-card .hyperlink.login-link {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.root .login-card .label.version-label {
+    -fx-font-size: 12px;
+}
+/* same box shape for the Login fields in every theme (only the colours come from the theme) */
+.root .login-card .login-field.text-field, .root .login-card .login-field.password-field {
+    -fx-background-color: -c-surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 9;
+    -fx-border-color: -c-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 9;
+    -fx-text-fill: -c-text;
+    -fx-prompt-text-fill: -c-faint;
+}
+.root .login-card .login-field.text-field:focused, .root .login-card .login-field.password-field:focused {
+    -fx-border-color: -c-primary;
+}
+/* the small theme button in the corner: same size and shape in every theme, whatever the theme name is */
+.root .login-card .menu-button.login-theme-btn {
+    -fx-font-size: 11px;
+    -fx-min-width: 130; -fx-pref-width: 130; -fx-max-width: 130;
+    -fx-min-height: 28; -fx-pref-height: 28; -fx-max-height: 28;
+    -fx-padding: 0 8 0 10;
+    -fx-background-color: -c-surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 9;
+    -fx-border-color: -c-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 9;
+}
+.root .login-card .menu-button.login-theme-btn > .label { -fx-text-fill: -c-text; }
+.root .login-card .menu-button.login-theme-btn > .arrow-button > .arrow { -fx-background-color: -c-faint; }
+
+/* ---- own window title bar (util/WindowChrome): metallic emerald, the colour of the logo ---- */
+.root.app-window {
+    -fx-border-color: #0c3329;
+    -fx-border-width: 1;
+}
+.root.app-window > .app-titlebar {
+    -fx-background-color:
+        #0c3329,
+        linear-gradient(to bottom, #62bda3 0%, #34917a 20%, #247059 49%, #17503f 51%, #1c5d4a 80%, #2a7a64 100%),
+        linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0));
+    -fx-background-insets: 0, 0 0 1 0, 0 0 17 0;
+    -fx-padding: 0 0 0 10;
+    -fx-min-height: 34; -fx-pref-height: 34; -fx-max-height: 34;
+}
+.root.app-window .app-titlebar-title {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 1, 0, 0, 1);
+}
+.root.app-window .app-titlebar .button.tb-btn {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-min-width: 44; -fx-pref-width: 44;
+    -fx-min-height: 34; -fx-pref-height: 34;
+    -fx-cursor: default;
+}
+.root.app-window .app-titlebar .button.tb-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.22);
+}
+.root.app-window .app-titlebar .button.tb-btn.tb-close:hover {
+    -fx-background-color: #c42b1c;
+}
+
+/* Register and Forgot Password sit in a transparent ScrollPane, which turns plain labels white: use the theme text colour */
+.root .auth-form .label { -fx-text-fill: -c-text; }
+.root .auth-form .label.calc-error-label { -fx-text-fill: -c-negative; }
+
+/* ===== Dashboard sidebar toggle: collapsed = icons only ===== */
+.sidebar-toggle {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-padding: 5;
+    -fx-cursor: hand;
+}
+.sidebar-toggle:hover { -fx-background-color: -c-sidebar-hover; }
+.sidebar.sidebar-collapsed { -fx-pref-width: 64; -fx-min-width: 64; -fx-max-width: 64; -fx-padding: 22 10 22 10; }
+.sidebar.sidebar-collapsed .sidebar-btn { -fx-pref-width: 44; -fx-padding: 11 0 11 0; -fx-alignment: CENTER; }
+/* sidebar inside a ScrollPane: no frame of its own, thin scroll bar in the sidebar colours */
+.sidebar-scroll, .sidebar-scroll > .viewport { -fx-background-color: -c-sidebar; -fx-background-insets: 0; -fx-padding: 0; -fx-border-color: transparent; }
+.sidebar-scroll > .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 8; -fx-padding: 0; }
+.sidebar-scroll > .scroll-bar:vertical > .track { -fx-background-color: transparent; -fx-border-color: transparent; }
+.sidebar-scroll > .scroll-bar:vertical > .thumb { -fx-background-color: #5f8f80; -fx-background-radius: 4; -fx-background-insets: 0; }
+.sidebar-scroll > .scroll-bar > .increment-button, .sidebar-scroll > .scroll-bar > .decrement-button { -fx-pref-height: 0; -fx-padding: 0; }
+.sidebar.sidebar-collapsed .sidebar-logo-box { -fx-alignment: CENTER; -fx-padding: 4 0 22 0; }
+
+/* Dashboard: tighter cards. Page padding, card padding and the gaps between cards are about half of the earlier values
+   (gaps: FXML spacing/hgap and the card rows in DashboardHomeController). Scoped to ".dash-page" so other screens keep theirs. */
+.content-pane.dash-page { -fx-padding: 12 15 12 15; -fx-spacing: 6; } /* the theme sets .content-pane spacing to 12 and a stylesheet beats the FXML spacing, so it is halved here */
+.dash-page .dash-summary-card { -fx-padding: 8 10 8 10; }
+.dash-page .dash-account-card { -fx-padding: 6; }
+
+/* Accounts screen: page padding, card padding and the gaps between cards are about half of the earlier values
+   (page 24/30 to 12/15, form card 18 to 9, table 8/10 to 4/5, tab top 4 to 2; the gaps in Accounts.fxml 15 to 8 and 10 to 5).
+   Scoped to ".acc-page" so other screens keep theirs. */
+.content-pane.acc-page { -fx-padding: 12 15 12 15; -fx-spacing: 6; }
+.acc-page .form-pane { -fx-padding: 9; }
+.acc-page .table-view { -fx-padding: 4 5 4 5; }
+.acc-page .tab-content { -fx-padding: 2 3 6 0; } /* room at the right and bottom, or the paging row is cut at the edge of the scroll area */
+
+/* Transaction page (Transaction, Transfer and Loans tabs, all included from Transactions.fxml): page padding, card padding and the
+   gaps between cards about half of the earlier values. Scoped to ".txn-page" so other screens keep theirs. */
+.txn-page .content-pane { -fx-padding: 12 15 12 15; -fx-spacing: 6; }
+.txn-page .form-pane, .txn-page .tab-content-area > HBox > VBox { -fx-padding: 9; }
+.txn-page .table-view { -fx-padding: 4 5 4 5; }
+.txn-page .tab-content { -fx-padding: 2 0 0 0; }
+
+/* Reports screen: card padding about half of the earlier value (14/16 to 7/8); the gaps and page padding are in Reports.fxml.
+   Scoped to ".rep-page" so other screens keep theirs. */
+.rep-page .report-box { -fx-padding: 7 8 7 8; }
+
+/* Calculator screen: page padding 24/30 to 12/15, page spacing 12 to 6, card padding 14/16 to 7/8 (about half).
+   Scoped to ".calc-page" so other screens keep theirs. */
+.content-pane.calc-page { -fx-padding: 12 15 12 15; -fx-spacing: 6; }
+.calc-page .summary-card { -fx-padding: 7 8 7 8; }
+
+/* Admin Panel screen: card padding 14/16 to 7/8 (about half); the page padding and the gaps are in AdminPanel.fxml.
+   Scoped to ".admin-page" so other screens keep theirs. */
+.admin-page .summary-card { -fx-padding: 7 8 7 8; }
+/* Backup & Restore buttons: smaller text (13 to 11). 4 classes so it beats the theme's ".button.btn-*" rules. */
+.admin-page .admin-backup .summary-card .button { -fx-font-size: 11px; }
+/* Google Drive 2x2 buttons: each is half the card, so the side padding is 8 (not 12) to keep "Import from Google Drive" uncut. */
+.admin-page .admin-backup .drive-grid .button { -fx-padding: 0 8 0 8; }
+/* connected Google account line in the Google Drive card: bigger and bold */
+.admin-page .admin-backup .drive-account { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #14463a; }
+
+/* Theme screen: page padding 24/30 to 12/15, page spacing 12 to 6, theme card padding 14 to 7 (about half); the gaps between
+   the cards are in Theme.fxml (14 to 7). Scoped to ".theme-page" so other screens keep theirs. */
+.content-pane.theme-page { -fx-padding: 12 15 12 15; -fx-spacing: 6; }
+.theme-page .theme-card { -fx-padding: 7; }
+
+/* Accounts: a clear divider line between the open and the closed accounts tables */
+.acc-page .separator:horizontal .line { -fx-border-color: -c-border; -fx-border-width: 2 0 0 0; }
+
+/* Inner (nested) tabs, e.g. Record Transaction / Categories under Transaction / Transfer / Loans: underline tabs, not pill buttons,
+   so the two rows read as "tabs" and as two levels. The outer tabs stay pill buttons. */
+.tab-pane .tab-pane > .tab-header-area > .tab-header-background {
+    -fx-border-color: transparent transparent #e1ebe7 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.tab-pane .tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-border-insets: 0;
+    -fx-border-radius: 0;
+    -fx-padding: 0 14 0 14;
+}
+.tab-pane .tab-pane > .tab-header-area > .headers-region > .tab:hover {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #a9cbbd transparent;
+}
+.tab-pane .tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #216e59 transparent;
+}
+.tab-pane .tab-pane > .tab-header-area > .headers-region > .tab .tab-label { -fx-text-fill: #566a62; -fx-font-size: 13px; }
+.tab-pane .tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label { -fx-text-fill: #14463a; }
+
+/* Transaction page: the outer tabs (Transaction / Transfer / Loans) are underline tabs too, like the inner row, and the two
+   header rows are tighter so the content starts higher. ".line-tabs" is on the TabPane of Transactions.fxml. */
+.tab-pane.line-tabs { -fx-tab-min-height: 32; -fx-tab-max-height: 32; }
+.tab-pane.line-tabs > .tab-header-area { -fx-padding: 0 0 6 0; }
+.tab-pane .tab-pane > .tab-header-area { -fx-padding: 0 0 6 0; }
+.tab-pane.line-tabs > .tab-header-area > .tab-header-background {
+    -fx-border-color: transparent transparent #e1ebe7 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.tab-pane.line-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-border-insets: 0;
+    -fx-border-radius: 0;
+    -fx-padding: 0 16 0 16;
+}
+.tab-pane.line-tabs > .tab-header-area > .headers-region > .tab:hover {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #a9cbbd transparent;
+}
+.tab-pane.line-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #216e59 transparent;
+}
+.tab-pane.line-tabs > .tab-header-area > .headers-region > .tab .tab-label { -fx-text-fill: #566a62; -fx-font-size: 13px; }
+.tab-pane.line-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label { -fx-text-fill: #14463a; }

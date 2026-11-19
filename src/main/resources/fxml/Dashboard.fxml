@@ -1,38 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.Group?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
 
+<!-- Emerald shell (the standard layout): 232px sidebar, text wordmark tile, line icons (NavEmerald board). -->
 <BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.finance.controller.DashboardController"
             fx:id="mainBorderPane">
 
     <left>
+        <!-- the sidebar scrolls when the window is shorter than its buttons -->
+        <ScrollPane styleClass="sidebar-scroll" fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
         <VBox fx:id="sidebarVBox" styleClass="sidebar" prefWidth="155">
-            <VBox alignment="CENTER" styleClass="sidebar-logo-box">
-                <ImageView fitWidth="56" fitHeight="56" preserveRatio="true">
-                    <Image url="@/images/logo.png" />
+            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="sidebar-logo-box">
+                <ImageView fx:id="sidebarLogoTile" fitWidth="38" fitHeight="38" preserveRatio="true">
+                    <Image url="@/images/logo.png"/>
                 </ImageView>
-                <Label text="DFMS" styleClass="sidebar-logo-text" />
-            </VBox>
+                <Label fx:id="sidebarLogoText" text="DFMS" styleClass="sidebar-logo-text" />
+                <Region fx:id="sidebarSpacer" HBox.hgrow="ALWAYS"/>
+                <!-- collapses the sidebar to icons only, and back -->
+                <Button fx:id="sidebarToggleBtn" styleClass="sidebar-toggle" focusTraversable="false">
+                    <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M3 6h18M3 12h18M3 18h18"/></Group></graphic>
+                </Button>
+            </HBox>
 
-            <Button fx:id="dashboardBtn"   text="Dashboard"   styleClass="sidebar-btn"/>
-            <Button fx:id="accountsBtn"    text="Accounts"    styleClass="sidebar-btn"/>
-            <Button fx:id="transactionBtn" text="Transaction" styleClass="sidebar-btn"/>
-            <Button fx:id="reportsBtn"     text="Reports"     styleClass="sidebar-btn"/>
-            <Button fx:id="calculatorBtn"  text="Calculator"  styleClass="sidebar-btn"/>
-            <Button fx:id="adminBtn"       text="Admin Panel" styleClass="sidebar-btn"/>
+            <Button fx:id="dashboardBtn" text="Dashboard" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"/></Group></graphic>
+            </Button>
+            <Button fx:id="accountsBtn" text="Accounts" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z M15 14.5a1 1 0 1 0 2 0a1 1 0 1 0-2 0"/></Group></graphic>
+            </Button>
+            <Button fx:id="transactionBtn" text="Transaction" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></Group></graphic>
+            </Button>
+            <Button fx:id="reportsBtn" text="Reports" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M4 20V10M10 20V4M16 20v-7M22 20H2"/></Group></graphic>
+            </Button>
+            <Button fx:id="calculatorBtn" text="Calculator" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></Group></graphic>
+            </Button>
+            <Button fx:id="adminBtn" text="Admin Panel" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></Group></graphic>
+            </Button>
 
             <Region VBox.vgrow="ALWAYS"/>
 
-            <Button fx:id="changePasswordBtn" text="Change Password" styleClass="sidebar-btn"/>
-            <Button fx:id="logoutBtn" text="Logout" styleClass="sidebar-btn"/>
+            <Button fx:id="themeBtn" text="Theme" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M12 3a9 9 0 0 0 0 18z"/></Group></graphic>
+            </Button>
+            <Button fx:id="changePasswordBtn" text="Change Password" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M4 15a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M11 12l9-9 M16 7l3 3"/></Group></graphic>
+            </Button>
+            <Button fx:id="logoutBtn" text="Logout" styleClass="sidebar-btn" maxWidth="Infinity">
+                <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9"/></Group></graphic>
+            </Button>
         </VBox>
+        </ScrollPane>
     </left>
 
     <center>

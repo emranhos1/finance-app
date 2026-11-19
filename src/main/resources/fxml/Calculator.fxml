@@ -11,9 +11,7 @@
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.CalculatorController"
-      styleClass="content-pane">
-
-    <Label text="Calculator" styleClass="page-title"/>
+      styleClass="content-pane, calc-page">
 
     <VBox styleClass="summary-card" spacing="12">
         <Label text="Select a date range and category, then add (+) or subtract (-). Every transaction of that category in the range is listed day-wise below. This is only a quick calculation tool and does not change any account or transaction data." styleClass="card-label" wrapText="true"/>
@@ -25,7 +23,7 @@
             <DatePicker fx:id="endDatePicker" prefWidth="140"/>
             <ComboBox fx:id="categoryComboBox" prefWidth="220" promptText="— Select date range first —"/>
             <Button fx:id="addBtn" text="+ Add" styleClass="btn-primary"/>
-            <Button fx:id="subtractBtn" text="− Subtract" styleClass="btn-secondary"/>
+            <Button fx:id="subtractBtn" text="− Subtract" styleClass="btn-secondary, btn-reset"/>
         </HBox>
 
         <Label fx:id="errorLabel" styleClass="calc-error-label" visible="false" managed="false"/>
@@ -42,7 +40,7 @@
 
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Button fx:id="removeSelectedBtn" text="Remove Selected" styleClass="btn-secondary"/>
-            <Button fx:id="clearAllBtn" text="Clear All" styleClass="btn-secondary"/>
+            <Button fx:id="clearAllBtn" text="Clear All" styleClass="btn-danger, btn-reset"/>
         </HBox>
 
         <HBox spacing="10" alignment="CENTER_LEFT" styleClass="calc-total-box">

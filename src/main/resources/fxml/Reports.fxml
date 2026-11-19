@@ -8,21 +8,21 @@
 <ScrollPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.finance.controller.ReportsController"
             fitToWidth="true" styleClass="dash-scroll">
-<VBox spacing="10" style="-fx-padding: 15;">
+<VBox spacing="5" styleClass="rep-page" style="-fx-padding: 8;">
 
     <!-- page-wide filters, every section reloads when one changes -->
     <HBox spacing="8" style="-fx-alignment: CENTER-LEFT;">
-        <MenuButton fx:id="accountFilterMenuButton" text="All Accounts" prefWidth="170"/>
-        <DateRangeField fx:id="filterDateRangeField"/>
-        <ComboBox fx:id="filterRefTypeComboBox" prefWidth="130"/>
-        <ComboBox fx:id="filterCategoryComboBox" prefWidth="170"/>
-        <Button text="Clear" onAction="#handleClearFilters" styleClass="btn-secondary"/>
+        <MenuButton fx:id="accountFilterMenuButton" text="All Accounts" prefWidth="170" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <DateRangeField fx:id="filterDateRangeField" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <ComboBox fx:id="filterRefTypeComboBox" prefWidth="130" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <ComboBox fx:id="filterCategoryComboBox" prefWidth="170" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button text="Clear" onAction="#handleClearFilters" styleClass="btn-secondary, btn-reset"/>
     </HBox>
 
-    <HBox spacing="10">
+    <HBox spacing="5">
         <VBox spacing="4" prefWidth="230" minWidth="210">
             <Label text="Summary" style="-fx-font-size: 13; -fx-font-weight: bold;"/>
-            <VBox style="-fx-border-color: #B7D9CE; -fx-padding: 10; -fx-background-color: #ffffff;" VBox.vgrow="ALWAYS">
+            <VBox styleClass="report-box" VBox.vgrow="ALWAYS">
             <GridPane hgap="30" vgap="8">
                 <Label text="Total Income:"  GridPane.columnIndex="0" GridPane.rowIndex="0"/>
                 <Label fx:id="totalIncomeLabel"  text="৳ 0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" style="-fx-font-weight: bold;"/>
@@ -34,7 +34,7 @@
             </VBox>
         </VBox>
 
-        <HBox spacing="10" HBox.hgrow="ALWAYS">
+        <HBox spacing="5" HBox.hgrow="ALWAYS">
             <VBox spacing="4" HBox.hgrow="ALWAYS">
                 <Label text="Expense by Category" style="-fx-font-size: 13; -fx-font-weight: bold;"/>
                 <TableView fx:id="expenseCategoryTable" minHeight="120" prefHeight="120">
@@ -71,16 +71,16 @@
         </HBox>
     </HBox>
 
-    <VBox spacing="4" style="-fx-border-color: #B7D9CE; -fx-padding: 10; -fx-background-color: #ffffff;">
+    <VBox spacing="4" styleClass="report-box">
         <HBox alignment="CENTER_LEFT" spacing="10">
             <Label text="Income vs Expense Trend (Last 12 Months)" style="-fx-font-size: 13; -fx-font-weight: bold;"/>
             <Region HBox.hgrow="ALWAYS"/>
             <HBox spacing="4" alignment="CENTER_LEFT">
-                <Region style="-fx-background-color: #E74C3C; -fx-min-width: 10; -fx-min-height: 10; -fx-max-width: 10; -fx-max-height: 10; -fx-background-radius: 5;"/>
+                <Region styleClass="legend-income" style="-fx-min-width: 10; -fx-min-height: 10; -fx-max-width: 10; -fx-max-height: 10; -fx-background-radius: 5;"/>
                 <Label text="Income" style="-fx-font-size: 11;"/>
             </HBox>
             <HBox spacing="4" alignment="CENTER_LEFT">
-                <Region style="-fx-background-color: #F39C12; -fx-min-width: 10; -fx-min-height: 10; -fx-max-width: 10; -fx-max-height: 10; -fx-background-radius: 5;"/>
+                <Region styleClass="legend-expense" style="-fx-min-width: 10; -fx-min-height: 10; -fx-max-width: 10; -fx-max-height: 10; -fx-background-radius: 5;"/>
                 <Label text="Expense" style="-fx-font-size: 11;"/>
             </HBox>
         </HBox>
@@ -114,9 +114,9 @@
     </TableView>
 
     <HBox spacing="8" alignment="CENTER_LEFT">
-        <Button fx:id="logPrevPageBtn" text="◀ Prev" onAction="#handleLogPrevPage" styleClass="btn-secondary"/>
+        <Button fx:id="logPrevPageBtn" text="◀ Prev" onAction="#handleLogPrevPage" styleClass="btn-secondary, btn-pager"/>
         <Label fx:id="logPageLabel" text="Page 1 of 1"/>
-        <Button fx:id="logNextPageBtn" text="Next ▶" onAction="#handleLogNextPage" styleClass="btn-secondary"/>
+        <Button fx:id="logNextPageBtn" text="Next ▶" onAction="#handleLogNextPage" styleClass="btn-secondary, btn-pager"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Label text="Rows per page:"/>
         <ComboBox fx:id="logPageSizeComboBox" prefWidth="80"/>

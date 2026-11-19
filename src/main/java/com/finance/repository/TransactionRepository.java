@@ -21,23 +21,23 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.type IN :types " +
            "AND (:categoryId IS NULL OR t.categoryId = :categoryId) " +
-           "AND (:date IS NULL OR t.date = :date) " +
+           "AND (:startDate IS NULL OR t.date >= :startDate) AND (:endDate IS NULL OR t.date <= :endDate) " +
            "AND (:accountId IS NULL OR t.fromAccountId = :accountId OR t.toAccountId = :accountId) " +
            "AND (:filterType IS NULL OR t.type = :filterType) " +
            "ORDER BY t.date DESC, t.id DESC")
     Page<Transaction> findTransactionsPage(@Param("userId") Long userId, @Param("types") List<Transaction.TransactionType> types,
-                                            @Param("categoryId") Long categoryId, @Param("date") LocalDate date,
+                                            @Param("categoryId") Long categoryId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate,
                                             @Param("accountId") Long accountId, @Param("filterType") Transaction.TransactionType filterType,
                                             Pageable pageable);
 
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.type = :type " +
            "AND (:transferTypeId IS NULL OR t.transferTypeId = :transferTypeId) " +
-           "AND (:date IS NULL OR t.date = :date) " +
+           "AND (:startDate IS NULL OR t.date >= :startDate) AND (:endDate IS NULL OR t.date <= :endDate) " +
            "AND (:accountId IS NULL OR t.fromAccountId = :accountId OR t.toAccountId = :accountId) " +
            "ORDER BY t.date DESC, t.id DESC")
     Page<Transaction> findTransfersPage(@Param("userId") Long userId, @Param("type") Transaction.TransactionType type,
                                          @Param("transferTypeId") Long transferTypeId,
-                                         @Param("date") LocalDate date, @Param("accountId") Long accountId,
+                                         @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("accountId") Long accountId,
                                          Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = :type AND t.fromAccountId IN :accountIds AND t.date BETWEEN :startDate AND :endDate" + NOT_LOAN)

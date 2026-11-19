@@ -111,6 +111,17 @@ public class ReportsController {
         logNoteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
         logChangeTypeColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getChangeType().name()));
         logRefTypeColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getReferenceType().name()));
+        com.finance.util.UiFormat.chipColumn(logChangeTypeColumn, com.finance.util.UiFormat::capitalize, com.finance.util.UiFormat::typeChipClass);
+        com.finance.util.UiFormat.chipColumn(logRefTypeColumn, com.finance.util.UiFormat::capitalize, com.finance.util.UiFormat::typeChipClass);
+        com.finance.util.UiFormat.amountColumn(expCategoryAmountColumn, (r, v) -> com.finance.util.UiFormat.Tone.NEG);
+        com.finance.util.UiFormat.amountColumn(incCategoryAmountColumn, (r, v) -> com.finance.util.UiFormat.Tone.POS);
+        com.finance.util.UiFormat.amountColumn(accountBalanceColumn, (r, v) -> v != null && v.signum() < 0 ? com.finance.util.UiFormat.Tone.NEG : com.finance.util.UiFormat.Tone.NEUTRAL);
+        com.finance.util.UiFormat.amountColumn(logAmountColumn, (l, v) -> l == null ? com.finance.util.UiFormat.Tone.NEUTRAL
+                : l.getChangeType() == AccountLog.ChangeType.CREDIT ? com.finance.util.UiFormat.Tone.POS
+                : l.getChangeType() == AccountLog.ChangeType.DEBIT ? com.finance.util.UiFormat.Tone.NEG : com.finance.util.UiFormat.Tone.NEUTRAL);
+        com.finance.util.UiFormat.amountColumn(logBalanceBeforeColumn);
+        com.finance.util.UiFormat.amountColumn(logBalanceAfterColumn);
+        trendChart.getStyleClass().add("trend-chart");
 
         logPageSizeComboBox.setItems(FXCollections.observableArrayList(PAGE_SIZE_OPTIONS));
         logPageSizeComboBox.setValue(20);
@@ -267,9 +278,9 @@ public class ReportsController {
                 ? transactionService.getIncomeFiltered(userId, accountIds, categoryId, start, end) : BigDecimal.ZERO;
         BigDecimal totalExpense = includeExpense()
                 ? transactionService.getExpenseFiltered(userId, accountIds, categoryId, start, end) : BigDecimal.ZERO;
-        totalIncomeLabel.setText(String.format("৳ %.2f", totalIncome));
-        totalExpenseLabel.setText(String.format("৳ %.2f", totalExpense));
-        netIncomeLabel.setText(String.format("৳ %.2f", totalIncome.subtract(totalExpense)));
+        totalIncomeLabel.setText(com.finance.util.UiFormat.money(totalIncome));
+        totalExpenseLabel.setText(com.finance.util.UiFormat.money(totalExpense));
+        netIncomeLabel.setText(com.finance.util.UiFormat.money(totalIncome.subtract(totalExpense)));
 
         List<CategoryRow> expenseRows = new ArrayList<>();
         if (includeExpense()) {
@@ -327,14 +338,6 @@ public class ReportsController {
             expenseSeries.getData().add(new XYChart.Data<>(label, expense));
         }
         trendChart.getData().setAll(incomeSeries, expenseSeries);
-        if (incomeSeries.getNode() != null) incomeSeries.getNode().setStyle("-fx-stroke: #E74C3C; -fx-stroke-width: 2;");
-        if (expenseSeries.getNode() != null) expenseSeries.getNode().setStyle("-fx-stroke: #F39C12; -fx-stroke-width: 2; -fx-stroke-dash-array: 6 4;");
-        for (XYChart.Data<String, Number> data : incomeSeries.getData()) {
-            if (data.getNode() != null) data.getNode().setStyle("-fx-background-color: #E74C3C, white;");
-        }
-        for (XYChart.Data<String, Number> data : expenseSeries.getData()) {
-            if (data.getNode() != null) data.getNode().setStyle("-fx-background-color: #F39C12, white;");
-        }
     }
 
     private Page<AccountLog> searchLogs(List<Long> accountIds, Pageable pageable) {
@@ -445,7 +448,7 @@ public class ReportsController {
     }
 
     private void showAlert(String title, String message) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         a.setTitle(title); a.setHeaderText(null); a.setContentText(message); a.showAndWait();
     }
 

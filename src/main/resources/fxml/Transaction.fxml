@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import com.finance.controller.DateRangeField?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.TransactionController"
-      spacing="10" style="-fx-padding: 15;">
+      spacing="5" style="-fx-padding: 8;">
 
     <TabPane VBox.vgrow="ALWAYS">
 
         <Tab text="Record Transaction" closable="false">
-            <HBox spacing="15" style="-fx-padding: 10;">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" style="-fx-padding: 5;">
 
-                <VBox spacing="8" prefWidth="270">
+                <VBox spacing="8" prefWidth="270" styleClass="form-pane">
 
                     <Label text="Date"/>
                     <DatePicker fx:id="datePicker" maxWidth="Infinity"/>
@@ -26,17 +28,17 @@
                     </HBox>
 
                     <Label text="Account"/>
-                    <ComboBox fx:id="accountComboBox" maxWidth="Infinity"/>
-                    <Label fx:id="accountBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
+                    <ComboBox fx:id="accountComboBox" maxWidth="Infinity" promptText="Select Account"/>
+                    <Label fx:id="accountBalanceLabel" text="" styleClass="hint-label"/>
 
                     <Label text="Category"/>
-                    <ComboBox fx:id="categoryComboBox" maxWidth="Infinity"/>
+                    <ComboBox fx:id="categoryComboBox" maxWidth="Infinity" promptText="Select Category"/>
 
                     <Label text="Amount"/>
                     <TextField fx:id="amountField" promptText="0.00" maxWidth="Infinity"/>
 
                     <Label text="Note"/>
-                    <TextArea fx:id="noteArea" prefHeight="60" wrapText="true" maxWidth="Infinity"/>
+                    <TextArea fx:id="noteArea" prefRowCount="1" prefHeight="38" minHeight="38" wrapText="true" maxWidth="Infinity"/>
 
                     <Button fx:id="saveTransactionBtn" text="Save Transaction"
                             onAction="#handleSaveTransaction" maxWidth="Infinity" styleClass="btn-primary"/>
@@ -44,33 +46,30 @@
                     <HBox fx:id="txEditButtons" spacing="8" visible="false" managed="false">
                         <Button text="Update" onAction="#handleUpdateTransaction" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteTransaction" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                        <Button text="Cancel" onAction="#handleCancelTransaction" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                        <Button text="Cancel" onAction="#handleCancelTransaction" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
 
                 </VBox>
 
                 <VBox spacing="6" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                    <!-- the search options sit on a card -->
+                    <VBox spacing="6" styleClass="form-pane">
                     <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="Category:"/>
-                        <ComboBox fx:id="categoryFilterComboBox" prefWidth="180"/>
-                        <Label text="Date:"/>
-                        <DatePicker fx:id="dateFilter" prefWidth="140"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Button text="Download Template" onAction="#handleDownloadImportTemplate" styleClass="btn-secondary"/>
+                        <ComboBox fx:id="categoryFilterComboBox" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <DateRangeField fx:id="dateFilter" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="accountFilterComboBox" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="typeFilterComboBox" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <Button text="Clear" onAction="#handleClearFilters" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="Account:"/>
-                        <ComboBox fx:id="accountFilterComboBox" prefWidth="180"/>
-                        <Label text="Type:"/>
-                        <ComboBox fx:id="typeFilterComboBox" prefWidth="140"/>
-                        <Button text="Clear" onAction="#handleClearFilters" styleClass="btn-secondary"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Button fx:id="importCsvBtn" text="Import CSV" onAction="#handleImportTransactionsCSV" styleClass="btn-secondary">
+                    <HBox spacing="14" alignment="CENTER_RIGHT">
+                        <Button text="Download Template" onAction="#handleDownloadImportTemplate" styleClass="btn-link"/>
+                        <Button fx:id="importCsvBtn" text="Import CSV" onAction="#handleImportTransactionsCSV" styleClass="btn-link">
                             <tooltip>
                                 <Tooltip text="CSV columns (with header row): Date,Type,Account,Category,Amount,Note&#10;Date: yyyy-MM-dd    Type: INCOME or EXPENSE&#10;Account/Category must match existing names - click Download Template for a ready-to-fill example."/>
                             </tooltip>
                         </Button>
                     </HBox>
+                    </VBox>
 
                     <TableView fx:id="transactionsTable" VBox.vgrow="ALWAYS">
                         <columns>
@@ -85,9 +84,9 @@
                     </TableView>
 
                     <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Button fx:id="txPrevPageBtn" text="◀ Prev" onAction="#handleTxPrevPage" styleClass="btn-secondary"/>
+                        <Button fx:id="txPrevPageBtn" text="◀ Prev" onAction="#handleTxPrevPage" styleClass="btn-secondary, btn-pager"/>
                         <Label fx:id="txPageLabel" text="Page 1 of 1"/>
-                        <Button fx:id="txNextPageBtn" text="Next ▶" onAction="#handleTxNextPage" styleClass="btn-secondary"/>
+                        <Button fx:id="txNextPageBtn" text="Next ▶" onAction="#handleTxNextPage" styleClass="btn-secondary, btn-pager"/>
                         <Region HBox.hgrow="ALWAYS"/>
                         <Label text="Rows per page:"/>
                         <ComboBox fx:id="txPageSizeComboBox" prefWidth="80"/>
@@ -95,24 +94,26 @@
                 </VBox>
 
             </HBox>
+            </ScrollPane>
         </Tab>
 
         <Tab text="Categories" closable="false">
-            <HBox spacing="15" style="-fx-padding: 10;">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" style="-fx-padding: 5;">
 
-                <VBox spacing="8" prefWidth="260">
+                <VBox spacing="8" prefWidth="260" styleClass="form-pane">
                     <Label text="Category Name"/>
                     <TextField fx:id="catNameField" promptText="e.g. Salary, Food"/>
 
                     <Label text="Type"/>
-                    <ComboBox fx:id="catTypeComboBox" maxWidth="Infinity"/>
+                    <ComboBox fx:id="catTypeComboBox" maxWidth="Infinity" promptText="Select Type"/>
 
                     <Button fx:id="catAddBtn" text="Add Category" onAction="#handleAddCategory" maxWidth="Infinity" styleClass="btn-primary"/>
 
                     <HBox fx:id="catEditButtons" spacing="8" managed="false" visible="false">
                         <Button text="Update" onAction="#handleUpdateCategory" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteCategory" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                        <Button text="Cancel" onAction="#handleCancelCategory" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                        <Button text="Cancel" onAction="#handleCancelCategory" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
                 </VBox>
 
@@ -126,6 +127,7 @@
                 </TableView>
 
             </HBox>
+            </ScrollPane>
         </Tab>
 
     </TabPane>
