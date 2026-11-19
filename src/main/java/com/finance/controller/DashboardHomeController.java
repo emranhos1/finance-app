@@ -88,6 +88,8 @@ public class DashboardHomeController {
     @FXML private StackPane expenseRingStack;
     @FXML private Label expenseRingLabel;
     @FXML private Label topExpenseLabel;
+    @FXML private Label topExpenseNameLabel;
+    @FXML private Label topExpenseAmountLabel;
     @FXML private PieChart dashExpensePieChart;
 
     @FXML private VBox loansCard;
@@ -194,8 +196,8 @@ public class DashboardHomeController {
 
         Account first = lowAccounts.get(0);
         String message = lowAccounts.size() == 1
-                ? first.getName() + " balance (৳ " + first.getBalance().toPlainString()
-                        + ") is below your ৳ " + first.getLowBalanceThreshold().toPlainString() + " alert — check the Accounts tab."
+                ? first.getName() + " balance (৳ " + com.finance.util.UiFormat.number(first.getBalance())
+                        + ") is below your ৳ " + com.finance.util.UiFormat.number(first.getLowBalanceThreshold()) + " alert — check the Accounts tab."
                 : lowAccounts.size() + " accounts are below their low-balance alert: "
                         + lowAccounts.stream().map(Account::getName).collect(java.util.stream.Collectors.joining(", "))
                         + " — check the Accounts tab.";
@@ -298,7 +300,7 @@ public class DashboardHomeController {
 
         // at most CARDS_PER_ROW per row; the cards of a row share its width, so a lone last card fills the line
         for (int i = 0; i < cards.size(); i += CARDS_PER_ROW) {
-            HBox row = new HBox(8);
+            HBox row = new HBox(4);
             for (HBox card : cards.subList(i, Math.min(i + CARDS_PER_ROW, cards.size()))) {
                 card.setPrefWidth(0);
                 row.getChildren().add(card);
@@ -309,7 +311,7 @@ public class DashboardHomeController {
 
     /** Sum of the accounts the user ticked in the picker; always shown so the picker stays reachable. */
     private HBox buildTotalCard(Long userId) {
-        List<Account> accounts = accountService.getAccountsByUserId(userId);
+        List<Account> accounts = accountService.getOpenAccountsByUserId(userId);
         BigDecimal total = BigDecimal.ZERO;
         int count = 0;
         for (Account a : accounts) {
@@ -338,7 +340,8 @@ public class DashboardHomeController {
         HBox.setHgrow(textBox, Priority.ALWAYS);
         HBox card = new HBox(10, badge, textBox, editBtn);
         card.setAlignment(Pos.CENTER_LEFT);
-        card.getStyleClass().add("dash-account-card");
+        // dash-total-card is only a styling hook, so a theme can show the Total card differently
+        card.getStyleClass().addAll("dash-account-card", "dash-total-card");
         card.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(card, Priority.ALWAYS);
         return card;
@@ -360,11 +363,29 @@ public class DashboardHomeController {
         scroll.setPrefViewportWidth(360);
         scroll.setPrefViewportHeight(Math.min(230, 27.0 * Math.max(accounts.size(), 1) + 10));
 
-        Alert dialog = new Alert(Alert.AlertType.CONFIRMATION);
+        Alert dialog = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION);
         dialog.setTitle("Total - choose accounts");
         dialog.setHeaderText(null);
         dialog.setGraphic(null);
-        dialog.getDialogPane().setContent(new VBox(8, new Label("Tick the accounts to add up:"), scroll));
+        // own OK / Cancel row: equal width, side by side, spanning the list width (the standard button bar right-aligns them)
+        Button okBtn = new Button("OK");
+        okBtn.getStyleClass().add("btn-primary");
+        okBtn.setDefaultButton(true);
+        okBtn.setOnAction(e -> dialog.setResult(ButtonType.OK));
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn-secondary", "btn-reset");
+        cancelBtn.setCancelButton(true);
+        cancelBtn.setOnAction(e -> dialog.setResult(ButtonType.CANCEL));
+        for (Button b : new Button[]{okBtn, cancelBtn}) {
+            b.setPrefWidth(150);
+            b.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(b, Priority.ALWAYS);
+        }
+        dialog.getDialogPane().getButtonTypes().clear();
+        javafx.scene.Node standardBar = dialog.getDialogPane().lookup(".button-bar");
+        if (standardBar != null) { standardBar.setVisible(false); standardBar.setManaged(false); }
+        dialog.getDialogPane().setContent(new VBox(10, new Label("Tick the accounts to add up:"), scroll,
+                new HBox(10, okBtn, cancelBtn)));
         dialog.showAndWait().ifPresent(btn -> {
             if (btn != ButtonType.OK) return;
             java.util.Set<Long> chosen = new java.util.HashSet<>();
@@ -458,24 +479,53 @@ public class DashboardHomeController {
             if (pctPrecise.compareTo(BigDecimal.ZERO) < 0) pctPrecise = BigDecimal.ZERO;
         }
         int pct = pctPrecise.setScale(0, RoundingMode.HALF_UP).intValue();
-        expenseRingLabel.setText(pctPrecise.setScale(2, RoundingMode.HALF_UP).toPlainString() + "%");
+        if (expenseRingLabel != null) expenseRingLabel.setText(pctPrecise.setScale(2, RoundingMode.HALF_UP).toPlainString() + "%");
+        if (expenseRingStack == null) return;
 
-        expenseRingStack.getChildren().removeIf(n -> n instanceof Circle);
+        ringPercent = pct;
+        installRing();
+        drawRing();
+    }
 
-        double radius = 22;
-        Circle track = new Circle(radius, radius, radius);
-        track.getStyleClass().add("dash-ring-track");
+    /** Percent shown by the ring (0-100). */
+    private int ringPercent;
+    private StackPane ringOwner; // the controller is a singleton, every FXML load brings a new stack pane
+    private Circle ringTrack;
+    private Circle ringProgress;
 
-        Circle progress = new Circle(radius, radius, radius);
-        progress.getStyleClass().add("dash-ring-progress");
-        progress.setStrokeLineCap(StrokeLineCap.ROUND);
+    /**
+     * The ring takes its size from the stack pane (-fx-pref-width, -fx-padding and the circles -fx-stroke-width all
+     * come from CSS), so a theme sets the ring size in its stylesheet. It is redrawn when the pane is laid out.
+     */
+    private void installRing() {
+        if (ringOwner == expenseRingStack) return;
+        ringOwner = expenseRingStack;
+        ringTrack = new Circle();
+        ringTrack.getStyleClass().add("dash-ring-track");
+        ringProgress = new Circle();
+        ringProgress.getStyleClass().add("dash-ring-progress");
+        ringProgress.setStrokeLineCap(StrokeLineCap.ROUND);
+        ringProgress.setRotate(-90);
+        expenseRingStack.getChildren().add(0, ringProgress);
+        expenseRingStack.getChildren().add(0, ringTrack);
+        expenseRingStack.widthProperty().addListener((o, a, b) -> drawRing());
+        expenseRingStack.heightProperty().addListener((o, a, b) -> drawRing());
+        ringProgress.strokeWidthProperty().addListener((o, a, b) -> drawRing());
+        expenseRingStack.paddingProperty().addListener((o, a, b) -> drawRing());
+    }
+
+    private void drawRing() {
+        if (ringTrack == null || expenseRingStack == null) return;
+        javafx.geometry.Insets pad = expenseRingStack.getPadding();
+        double box = Math.min(expenseRingStack.getWidth() - pad.getLeft() - pad.getRight(),
+                expenseRingStack.getHeight() - pad.getTop() - pad.getBottom());
+        if (box <= 0) box = 46; // before the first layout: the old fixed size
+        double radius = Math.max(1, (box - ringProgress.getStrokeWidth()) / 2);
+        ringTrack.setRadius(radius);
+        ringProgress.setRadius(radius);
         double circumference = 2 * Math.PI * radius;
-        double dash = Math.max(0.01, circumference * pct / 100.0);
-        progress.getStrokeDashArray().setAll(dash, circumference);
-        progress.setRotate(-90);
-
-        expenseRingStack.getChildren().add(0, progress);
-        expenseRingStack.getChildren().add(0, track);
+        double dash = Math.max(0.01, circumference * ringPercent / 100.0);
+        ringProgress.getStrokeDashArray().setAll(dash, circumference);
     }
 
     private void buildTopExpense(Long userId, List<Account> accounts, LocalDate monthStart, LocalDate today) {
@@ -489,24 +539,38 @@ public class DashboardHomeController {
         Category topCategory = null;
         BigDecimal topAmount = BigDecimal.ZERO;
         ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
+        boolean hasPie = dashExpensePieChart != null; // the pie chart is optional, a theme layout may leave it out
         for (Category c : expenseCategories) {
             BigDecimal amount = transactionService.getExpenseByCategoryForAccounts(userId, c.getId(), bankAndCashIds, monthStart, today);
-            if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            if (hasPie && amount.compareTo(BigDecimal.ZERO) > 0) {
                 pieData.add(new PieChart.Data(c.getName(), amount.doubleValue()));
             }
             if (amount.compareTo(topAmount) > 0) { topAmount = amount; topCategory = c; }
         }
-        dashExpensePieChart.setData(pieData);
+        if (hasPie) dashExpensePieChart.setData(pieData);
 
         for (PieChart.Data slice : pieData) {
+            if (slice.getNode() == null) continue;
             Tooltip tooltip = new Tooltip(slice.getName() + "\n" + fmt(BigDecimal.valueOf(slice.getPieValue())));
             Tooltip.install(slice.getNode(), tooltip);
         }
 
-        if (topCategory == null) {
-            topExpenseLabel.setText("No expense this month");
-        } else {
-            topExpenseLabel.setText(topCategory.getName() + " — " + fmt(topAmount));
+        // a layout may show the name and the amount in two labels (topExpenseNameLabel, topExpenseAmountLabel)
+        // or in the single combined topExpenseLabel; every one of them is optional
+        String nameText = topCategory == null ? "No expense this month" : topCategory.getName();
+        String amountText = topCategory == null ? null : fmt(topAmount);
+        if (topExpenseNameLabel != null) {
+            topExpenseNameLabel.setText(nameText);
+            topExpenseNameLabel.getStyleClass().remove("dash-top-expense-none");
+            if (topCategory == null) topExpenseNameLabel.getStyleClass().add("dash-top-expense-none");
+            if (topExpenseAmountLabel != null) {
+                topExpenseAmountLabel.setText(amountText == null ? "" : amountText);
+                topExpenseAmountLabel.setVisible(amountText != null);
+                topExpenseAmountLabel.setManaged(amountText != null);
+            }
+        }
+        if (topExpenseLabel != null) {
+            topExpenseLabel.setText(topCategory == null ? nameText : nameText + " — " + amountText);
         }
     }
 
@@ -524,8 +588,11 @@ public class DashboardHomeController {
 
         loansBox.getChildren().clear();
         loansTotalBox.getChildren().clear();
-        loansCard.setVisible(!given.isEmpty() || !taken.isEmpty());
-        if (!loansCard.isVisible()) return;
+        boolean showLoans = !given.isEmpty() || !taken.isEmpty();
+        loansCard.setVisible(showLoans);
+        loansCard.setManaged(showLoans); // no empty grid cell while the card is hidden
+        fitGridColumns();
+        if (!showLoans) return;
 
         if (!given.isEmpty()) {
             BigDecimal total = BigDecimal.ZERO;
@@ -558,6 +625,40 @@ public class DashboardHomeController {
                 loansBox.getChildren().add(buildLoanPersonRow(ps.getPersonName(), ps.getBorrowedRemaining(),
                         "dash-tx-amount-neg", "Taken " + fmt(ps.getTotalBorrowed()) + " · Repaid " + fmt(repaid)));
             }
+        }
+    }
+
+    /** Original percent widths of the summary grid columns, kept so the columns can be re-fitted each refresh. */
+    private double[] gridPercents;
+    private javafx.scene.layout.GridPane gridOwner;
+
+    /** Columns whose cards are all hidden (unmanaged) give their width to the others, so no empty gap stays. */
+    private void fitGridColumns() {
+        if (!(loansCard.getParent() instanceof javafx.scene.layout.GridPane)) return;
+        javafx.scene.layout.GridPane grid = (javafx.scene.layout.GridPane) loansCard.getParent();
+        List<javafx.scene.layout.ColumnConstraints> cols = grid.getColumnConstraints();
+        if (cols.isEmpty()) return;
+        if (gridPercents == null || gridOwner != grid) { // singleton controller: a new FXML load brings a new grid
+            gridOwner = grid;
+            gridPercents = new double[cols.size()];
+            for (int c = 0; c < cols.size(); c++) gridPercents[c] = cols.get(c).getPercentWidth();
+        }
+        if (gridPercents.length != cols.size()) return;
+        double[] shown = new double[cols.size()];
+        double total = 0;
+        for (int c = 0; c < cols.size(); c++) {
+            boolean used = false;
+            for (javafx.scene.Node n : grid.getChildren()) {
+                Integer col = javafx.scene.layout.GridPane.getColumnIndex(n);
+                if ((col == null ? 0 : col) == c && n.isManaged()) { used = true; break; }
+            }
+            shown[c] = used ? gridPercents[c] : 0;
+            total += shown[c];
+        }
+        if (total <= 0) return;
+        for (int c = 0; c < cols.size(); c++) {
+            cols.get(c).setPercentWidth(shown[c] * 100.0 / total);
+            cols.get(c).setMinWidth(shown[c] > 0 ? 10 : 0);
         }
     }
 
@@ -743,14 +844,14 @@ public class DashboardHomeController {
     private void handleRecalculateIncome(YearMonth ym, BigDecimal currentAmount, Long userId, List<Account> accounts) {
         BigDecimal recalculated = monthlyExpenseOverrideService.calculateIncome(userId, accounts, ym);
         if (recalculated.compareTo(currentAmount) == 0) {
-            Alert info = new Alert(Alert.AlertType.INFORMATION,
+            Alert info = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION,
                     ym.format(FULL_MONTH_FMT) + " — income is already up to date (" + fmt(currentAmount) + ").");
             info.setTitle("Recalculate");
             info.setHeaderText(null);
             info.showAndWait();
             return;
         }
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+        Alert confirm = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION,
                 ym.format(FULL_MONTH_FMT) + " — total income\n\n"
                         + "Saved now:      " + fmt(currentAmount) + "\n"
                         + "Recalculated:  " + fmt(recalculated) + "\n\nUpdate to the recalculated figure?");
@@ -764,7 +865,7 @@ public class DashboardHomeController {
     }
 
     private void handleEditMonthlyIncome(YearMonth ym, BigDecimal currentAmount, Long userId) {
-        TextInputDialog dialog = new TextInputDialog(currentAmount.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        TextInputDialog dialog = new com.finance.util.AppTextInputDialog(currentAmount.setScale(2, RoundingMode.HALF_UP).toPlainString());
         dialog.setTitle("Save month's actual income");
         dialog.setHeaderText(null);
         dialog.setContentText(ym.format(FULL_MONTH_FMT) + " — total income (৳):");
@@ -788,14 +889,14 @@ public class DashboardHomeController {
     private void handleRecalculateMonth(YearMonth ym, String typeName, BigDecimal currentAmount, Long userId, List<Account> accounts) {
         BigDecimal recalculated = transactionService.getEffectiveExpense(userId, accounts, typeName, ym.atDay(1), ym.atEndOfMonth());
         if (recalculated.compareTo(currentAmount) == 0) {
-            Alert info = new Alert(Alert.AlertType.INFORMATION,
+            Alert info = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION,
                     ym.format(FULL_MONTH_FMT) + " — " + typeName + " is already up to date (" + fmt(currentAmount) + ").");
             info.setTitle("Recalculate");
             info.setHeaderText(null);
             info.showAndWait();
             return;
         }
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+        Alert confirm = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION,
                 ym.format(FULL_MONTH_FMT) + " — " + typeName + " expense\n\n"
                         + "Saved now:      " + fmt(currentAmount) + "\n"
                         + "Recalculated:  " + fmt(recalculated) + "\n\nUpdate to the recalculated figure?");
@@ -809,7 +910,7 @@ public class DashboardHomeController {
     }
 
     private void handleEditMonthlyExpense(YearMonth ym, String typeName, BigDecimal currentAmount, Long userId) {
-        TextInputDialog dialog = new TextInputDialog(currentAmount.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        TextInputDialog dialog = new com.finance.util.AppTextInputDialog(currentAmount.setScale(2, RoundingMode.HALF_UP).toPlainString());
         dialog.setTitle("Save month's actual expense");
         dialog.setHeaderText(null);
         dialog.setContentText(ym.format(FULL_MONTH_FMT) + " — " + typeName + " expense (৳):");
@@ -831,7 +932,7 @@ public class DashboardHomeController {
     }
 
     private void showValidationError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR, message);
+        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.ERROR, message);
         alert.setTitle("Invalid amount");
         alert.setHeaderText(null);
         alert.showAndWait();
@@ -869,5 +970,5 @@ public class DashboardHomeController {
         return BADGE_PALETTE[idx];
     }
 
-    private String fmt(BigDecimal v) { return String.format("৳ %.2f", v); }
+    private String fmt(BigDecimal v) { return com.finance.util.UiFormat.money(v); }
 }

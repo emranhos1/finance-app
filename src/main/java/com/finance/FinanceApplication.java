@@ -1,5 +1,6 @@
 package com.finance;
 
+import com.finance.theme.ThemeManager;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -35,6 +36,9 @@ public class FinanceApplication extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         primaryStage = stage;
+        // own title bar (WindowChrome); the style can only be set before the first show
+        primaryStage.initStyle(StageStyle.UNDECORATED);
+        ThemeManager.install();
         applyAppIcon(primaryStage);
         Stage splashStage = new Stage(StageStyle.TRANSPARENT);
         applyAppIcon(splashStage);
@@ -83,6 +87,7 @@ public class FinanceApplication extends Application {
         Parent root = loader.load();
         Scene scene = new Scene(root, 500, 350);
         scene.setFill(Color.TRANSPARENT);
+        scene.getProperties().put(ThemeManager.NO_THEME, true);
         applyCSS(scene);
         splashStage.setScene(scene);
         splashStage.setResizable(false);
@@ -91,9 +96,11 @@ public class FinanceApplication extends Application {
     }
 
     public static void showLoginScreen() throws Exception {
-        FXMLLoader loader = new FXMLLoader(FinanceApplication.class.getResource("/fxml/Login.fxml"));
+        FXMLLoader loader = new FXMLLoader(FinanceApplication.class.getResource(ThemeManager.resolveFxml("/fxml/Login.fxml")));
         loader.setControllerFactory(applicationContext::getBean);
-        Parent root = loader.load();
+        primaryStage.setTitle("Daily Finance Management System");
+        // Login: minimize and close only
+        Parent root = com.finance.util.WindowChrome.wrap(primaryStage, loader.load(), false);
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         double width = screenBounds.getWidth() * 0.30;
@@ -101,6 +108,11 @@ public class FinanceApplication extends Application {
 
         Scene scene = new Scene(root, width, height);
         applyCSS(scene);
+        // a theme with a taller login card would cut off the version line at the bottom: grow the window to fit it
+        // (the title bar is part of the scene now, so its height is already in the preferred height)
+        root.applyCss();
+        double needed = root.prefHeight(width);
+        height = Math.min(Math.max(height, needed), screenBounds.getHeight() * 0.9);
         // hide first so Windows repaints the window, no ghosted pixels
         primaryStage.hide();
         primaryStage.setMaximized(false);
@@ -118,9 +130,9 @@ public class FinanceApplication extends Application {
     }
 
     public static void showDashboard() throws Exception {
-        FXMLLoader loader = new FXMLLoader(FinanceApplication.class.getResource("/fxml/Dashboard.fxml"));
+        FXMLLoader loader = new FXMLLoader(FinanceApplication.class.getResource(ThemeManager.resolveFxml("/fxml/Dashboard.fxml")));
         loader.setControllerFactory(applicationContext::getBean);
-        Parent root = loader.load();
+        Parent root = com.finance.util.WindowChrome.wrap(primaryStage, loader.load(), true);
 
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         double width = screenBounds.getWidth() * DASHBOARD_WIDTH_RATIO;
@@ -157,10 +169,15 @@ public class FinanceApplication extends Application {
     }
 
     private static void applyCSS(Scene scene) {
-        String css = FinanceApplication.class.getResource("/css/main.css") != null
-                ? FinanceApplication.class.getResource("/css/main.css").toExternalForm()
-                : null;
-        if (css != null) scene.getStylesheets().add(css);
+        if (scene.getProperties().containsKey(ThemeManager.NO_THEME)) {
+            // splash screen: base styles only, it shows before any theme is applied
+            String css = FinanceApplication.class.getResource("/css/main.css") != null
+                    ? FinanceApplication.class.getResource("/css/main.css").toExternalForm()
+                    : null;
+            if (css != null) scene.getStylesheets().add(css);
+            return;
+        }
+        ThemeManager.apply(scene);
     }
 
     public static void main(String[] args) {

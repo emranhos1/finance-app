@@ -48,7 +48,7 @@ public class TransferController {
 
     @FXML private ComboBox<TransferType> transferTypeFilterComboBox;
     @FXML private ComboBox<Account> accountFilterComboBox;
-    @FXML private DatePicker dateFilter;
+    @FXML private DateRangeField dateFilter;
 
     @FXML private TableView<Transaction> transfersTable;
     @FXML private TableColumn<Transaction, LocalDate> dateColumn;
@@ -76,6 +76,10 @@ public class TransferController {
     @FXML private Button typeAddBtn;
     @FXML private HBox typeEditButtons;
 
+    // optional display-only labels (Gold footer lines, Bento tile): a layout may leave any of them out
+    @FXML private Label transferPageTotalLabel;
+    @FXML private Label transferTypesCountLabel;
+
     private Transaction selectedTransfer = null;
 
     @FXML
@@ -83,6 +87,7 @@ public class TransferController {
         setupAccountComboBoxes();
         setupTable();
         setupTypesTable();
+        setupSummaries();
         loadAccounts();
         loadTypes();
         trPageSizeComboBox.setItems(FXCollections.observableArrayList(PAGE_SIZE_OPTIONS));
@@ -92,6 +97,20 @@ public class TransferController {
         datePicker.setValue(LocalDate.now());
         resetForm();
         resetTypeForm();
+    }
+
+    /** Total of the transfers on the shown page and the number of transfer types; no new query. */
+    private void setupSummaries() {
+        com.finance.util.UiFormat.watchItems(transfersTable, () -> {
+            BigDecimal sum = BigDecimal.ZERO;
+            if (transfersTable.getItems() != null) {
+                for (Transaction t : transfersTable.getItems()) if (t.getAmount() != null) sum = sum.add(t.getAmount());
+            }
+            com.finance.util.UiFormat.setText(transferPageTotalLabel, com.finance.util.UiFormat.money(sum));
+        });
+        com.finance.util.UiFormat.watchItems(typesTable, () ->
+                com.finance.util.UiFormat.setText(transferTypesCountLabel,
+                        String.valueOf(typesTable.getItems() == null ? 0 : typesTable.getItems().size())));
     }
 
     private void showBalance(Label label, Account account) {
@@ -130,7 +149,7 @@ public class TransferController {
         });
         accountFilterComboBox.setOnAction(e -> loadTransfersPage(0));
 
-        dateFilter.valueProperty().addListener((obs, o, n) -> loadTransfersPage(0));
+        dateFilter.setOnChange(() -> loadTransfersPage(0));
     }
 
     private void setupTable() {
@@ -139,6 +158,8 @@ public class TransferController {
         noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
 
         typeColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getType().name()));
+        com.finance.util.UiFormat.chipColumn(typeColumn, com.finance.util.UiFormat::transferTypeLabel, com.finance.util.UiFormat::typeChipClass);
+        com.finance.util.UiFormat.amountColumn(amountColumn);
 
         fromColumn.setCellValueFactory(cd -> {
             Long accId = cd.getValue().getFromAccountId();
@@ -192,8 +213,9 @@ public class TransferController {
 
     private void loadAccounts() {
         List<Account> accounts = accountService.getAccountsByUserId(sessionContext.getCurrentUserId());
-        fromAccountComboBox.setItems(FXCollections.observableArrayList(accounts));
-        toAccountComboBox.setItems(FXCollections.observableArrayList(accounts));
+        List<Account> openAccounts = accountService.getOpenAccountsByUserId(sessionContext.getCurrentUserId());
+        fromAccountComboBox.setItems(FXCollections.observableArrayList(openAccounts));
+        toAccountComboBox.setItems(FXCollections.observableArrayList(openAccounts));
 
         Account currentFilter = accountFilterComboBox.getValue();
         List<Account> filterOptions = new ArrayList<>();
@@ -211,10 +233,11 @@ public class TransferController {
         Long transferTypeId = (selectedType != null && selectedType.getId() != null) ? selectedType.getId() : null;
         Account selectedAccount = accountFilterComboBox.getValue();
         Long accountId = (selectedAccount != null && selectedAccount.getId() != null) ? selectedAccount.getId() : null;
-        LocalDate selectedDate = dateFilter.getValue();
+        LocalDate startDate = dateFilter.getStart();
+        LocalDate endDate = dateFilter.getEnd();
 
         Page<Transaction> result = transactionService.getTransfersPage(sessionContext.getCurrentUserId(),
-                transferTypeId, selectedDate, accountId, pageable);
+                transferTypeId, startDate, endDate, accountId, pageable);
 
         trCurrentPage = result.getNumber();
         trTotalPages = Math.max(result.getTotalPages(), 1);
@@ -338,7 +361,7 @@ public class TransferController {
     public void handleClearFilters() {
         transferTypeFilterComboBox.setValue(ALL_TRANSFER_TYPES_OPTION);
         accountFilterComboBox.setValue(ALL_ACCOUNTS_OPTION);
-        dateFilter.setValue(null);
+        dateFilter.clear();
         loadTransfersPage(0);
     }
 
@@ -378,13 +401,13 @@ public class TransferController {
     }
 
     private boolean confirm(String msg) {
-        Alert a = new Alert(Alert.AlertType.CONFIRMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION);
         a.setTitle("Confirm"); a.setHeaderText(null); a.setContentText(msg);
         Optional<ButtonType> r = a.showAndWait(); return r.isPresent() && r.get() == ButtonType.OK;
     }
 
     private void showAlert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
     }
 }

@@ -15,26 +15,26 @@
 <ScrollPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.finance.controller.DashboardHomeController"
             fitToWidth="true" styleClass="dash-scroll">
-<VBox styleClass="content-pane" spacing="7">
+<VBox styleClass="content-pane, dash-page" spacing="4">
 
     <HBox fx:id="loanReminderBanner" alignment="CENTER_LEFT" spacing="8" styleClass="dash-loan-toast" visible="false" managed="false">
-        <Label text="⚠" style="-fx-font-size: 14;"/>
+        <Label text="⚠" styleClass="banner-icon"/>
         <Label fx:id="loanReminderLabel" text="" wrapText="true" HBox.hgrow="ALWAYS"/>
     </HBox>
 
     <HBox fx:id="maturityReminderBanner" alignment="CENTER_LEFT" spacing="8" styleClass="dash-loan-toast" visible="false" managed="false">
-        <Label text="⚠" style="-fx-font-size: 14;"/>
+        <Label text="⚠" styleClass="banner-icon"/>
         <Label fx:id="maturityReminderLabel" text="" wrapText="true" HBox.hgrow="ALWAYS"/>
     </HBox>
 
     <HBox fx:id="lowBalanceReminderBanner" alignment="CENTER_LEFT" spacing="8" styleClass="dash-loan-toast" visible="false" managed="false">
-        <Label text="⚠" style="-fx-font-size: 14;"/>
+        <Label text="⚠" styleClass="banner-icon"/>
         <Label fx:id="lowBalanceReminderLabel" text="" wrapText="true" HBox.hgrow="ALWAYS"/>
     </HBox>
 
-    <VBox fx:id="balanceCardsBox" spacing="8"/>
+    <VBox fx:id="balanceCardsBox" spacing="4"/>
 
-    <GridPane hgap="10">
+    <GridPane hgap="5">
         <columnConstraints>
             <ColumnConstraints percentWidth="20" minWidth="10"/>
             <ColumnConstraints percentWidth="20" minWidth="10"/>
@@ -77,7 +77,7 @@
         </VBox>
 
         <VBox styleClass="dash-summary-card" spacing="2" minWidth="0" GridPane.columnIndex="3" GridPane.rowIndex="0">
-            <PieChart fx:id="dashExpensePieChart" minWidth="0" minHeight="130" prefHeight="130"
+            <PieChart fx:id="dashExpensePieChart" minWidth="0" minHeight="95" prefHeight="95"
                       labelsVisible="true" legendVisible="false"/>
         </VBox>
     </GridPane>

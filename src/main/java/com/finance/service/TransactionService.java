@@ -41,6 +41,7 @@ public class TransactionService {
         Account toAccount = accountRepository.findById(toAccountId)
                 .orElseThrow(() -> new IllegalArgumentException("To account not found"));
         if (!toAccount.getUserId().equals(userId)) throw new IllegalArgumentException("Account does not belong to user");
+        accountService.requireOpen(toAccount);
 
         BigDecimal before = toAccount.getBalance();
         toAccount.setBalance(before.add(amount));
@@ -67,6 +68,7 @@ public class TransactionService {
         Account fromAccount = accountRepository.findById(fromAccountId)
                 .orElseThrow(() -> new IllegalArgumentException("From account not found"));
         if (!fromAccount.getUserId().equals(userId)) throw new IllegalArgumentException("Account does not belong to user");
+        accountService.requireOpen(fromAccount);
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient balance in '" + fromAccount.getName() + "' (available: \u09f3 "
                     + fromAccount.getBalance().toPlainString() + ")");
@@ -96,6 +98,8 @@ public class TransactionService {
 
         if (!fromAccount.getUserId().equals(userId) || !toAccount.getUserId().equals(userId))
             throw new IllegalArgumentException("Accounts do not belong to user");
+        accountService.requireOpen(fromAccount);
+        accountService.requireOpen(toAccount);
         if (fromAccount.getId().equals(toAccount.getId()))
             throw new IllegalArgumentException("Cannot transfer to the same account");
         if (fromAccount.getBalance().compareTo(amount) < 0) {
@@ -145,6 +149,7 @@ public class TransactionService {
             });
         }
 
+        requireAccountsOpen(tx);
         BigDecimal diff = newAmount.subtract(tx.getAmount());
 
         if (tx.getType() == Transaction.TransactionType.INCOME) {
@@ -207,6 +212,7 @@ public class TransactionService {
                     + "). Delete it from the Loans tab instead, so the loan record is removed too instead of being left behind.");
         });
 
+        requireAccountsOpen(tx);
         if (tx.getType() == Transaction.TransactionType.INCOME && tx.getToAccountId() != null) {
             accountRepository.findById(tx.getToAccountId()).ifPresent(acc -> {
                 BigDecimal before = acc.getBalance();
@@ -244,6 +250,44 @@ public class TransactionService {
         Long linkedLoanId = tx.getLoanId();
         transactionRepository.deleteById(transactionId);
         syncLoanStatus(linkedLoanId);
+    }
+
+    /** A transaction that touches a closed (matured) account cannot be edited or deleted. */
+    private void requireAccountsOpen(Transaction tx) {
+        if (tx.getFromAccountId() != null) accountRepository.findById(tx.getFromAccountId()).ifPresent(accountService::requireOpen);
+        if (tx.getToAccountId() != null) accountRepository.findById(tx.getToAccountId()).ifPresent(accountService::requireOpen);
+    }
+
+    /**
+     * Matures an account: moves its whole balance to the target account as a TRANSFER, adds the interest to the
+     * target as an INCOME, then closes the account (balance 0). Allowed before the maturity date too.
+     */
+    public void matureAccount(Long userId, Long accountId, Long targetAccountId, BigDecimal interest, Long interestCategoryId) {
+        if (interest == null || interest.compareTo(BigDecimal.ZERO) < 0)
+            throw new IllegalArgumentException("Interest cannot be negative");
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+        if (!account.getUserId().equals(userId)) throw new IllegalArgumentException("Access denied");
+        accountService.requireOpen(account);
+        if (!Boolean.TRUE.equals(account.getAccountType().getHasMaturity()))
+            throw new IllegalArgumentException("Only an account whose type has maturity can be matured");
+        if (targetAccountId == null) throw new IllegalArgumentException("Select an account");
+        if (targetAccountId.equals(accountId)) throw new IllegalArgumentException("Cannot mature into the same account");
+
+        LocalDate today = LocalDate.now();
+        BigDecimal principal = account.getBalance();
+        String name = account.getName();
+        if (principal.compareTo(BigDecimal.ZERO) > 0) {
+            recordTransferTransaction(userId, today, principal, accountId, targetAccountId, null,
+                    "Maturity principal - " + name);
+        }
+        if (interest.compareTo(BigDecimal.ZERO) > 0) {
+            recordIncomeTransaction(userId, today, interest, targetAccountId, interestCategoryId,
+                    "Maturity interest - " + name);
+        }
+        Account fresh = accountRepository.findById(accountId).orElseThrow();
+        fresh.setClosed(true);
+        accountRepository.save(fresh);
     }
 
     private void requirePositiveAmount(BigDecimal amount) {
@@ -294,13 +338,13 @@ public class TransactionService {
     }
 
     public Page<Transaction> getTransactionsPage(Long userId, List<Transaction.TransactionType> types,
-                                                  Long categoryId, LocalDate date, Long accountId,
+                                                  Long categoryId, LocalDate startDate, LocalDate endDate, Long accountId,
                                                   Transaction.TransactionType filterType, Pageable pageable) {
-        return transactionRepository.findTransactionsPage(userId, types, categoryId, date, accountId, filterType, pageable);
+        return transactionRepository.findTransactionsPage(userId, types, categoryId, startDate, endDate, accountId, filterType, pageable);
     }
 
-    public Page<Transaction> getTransfersPage(Long userId, Long transferTypeId, LocalDate date, Long accountId, Pageable pageable) {
-        return transactionRepository.findTransfersPage(userId, Transaction.TransactionType.TRANSFER, transferTypeId, date, accountId, pageable);
+    public Page<Transaction> getTransfersPage(Long userId, Long transferTypeId, LocalDate startDate, LocalDate endDate, Long accountId, Pageable pageable) {
+        return transactionRepository.findTransfersPage(userId, Transaction.TransactionType.TRANSFER, transferTypeId, startDate, endDate, accountId, pageable);
     }
 
     public List<Transaction> getTransactionsByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {

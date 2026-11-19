@@ -70,7 +70,7 @@ public class TransactionController {
     @FXML private TableColumn<Transaction, BigDecimal> amountColumn;
     @FXML private TableColumn<Transaction, String> noteColumn;
     @FXML private ComboBox<Category> categoryFilterComboBox;
-    @FXML private DatePicker dateFilter;
+    @FXML private DateRangeField dateFilter;
     @FXML private ComboBox<Account> accountFilterComboBox;
     @FXML private ComboBox<String> typeFilterComboBox;
     @FXML private Button txPrevPageBtn;
@@ -87,6 +87,11 @@ public class TransactionController {
     private int txCurrentPage = 0;
     private int txTotalPages = 1;
 
+    // optional display-only labels (Gold footer lines, Bento tiles): a layout may leave any of them out
+    @FXML private Label txNetLabel;
+    @FXML private Label categoriesCountLabel;
+    @FXML private Label incomeCategoriesCountLabel;
+    @FXML private Label expenseCategoriesCountLabel;
     @FXML private TableView<Category> categoriesTable;
     @FXML private TableColumn<Category, Long> catIdColumn;
     @FXML private TableColumn<Category, String> catNameColumn;
@@ -104,6 +109,7 @@ public class TransactionController {
         setupCategoryComboBox();
         setupTransactionTable();
         setupCategoryTable();
+        setupSummaries();
 
         typeToggleGroup.selectedToggleProperty().addListener((obs, o, n) -> refreshDropdowns());
         datePicker.setValue(LocalDate.now());
@@ -156,7 +162,7 @@ public class TransactionController {
     private void refreshDropdowns() {
         Long userId = sessionContext.getCurrentUserId();
         String type = getSelectedType();
-        accountComboBox.setItems(FXCollections.observableArrayList(accountService.getAccountsByUserId(userId)));
+        accountComboBox.setItems(FXCollections.observableArrayList(accountService.getOpenAccountsByUserId(userId)));
         accountComboBox.setValue(null);
         if ("INCOME".equals(type)) {
             categoryComboBox.setItems(FXCollections.observableArrayList(categoryService.getIncomeCategories(userId)));
@@ -166,12 +172,44 @@ public class TransactionController {
         categoryComboBox.setValue(null);
     }
 
+    /** Net of the rows on the shown page (income minus expense) and the category counts; no new query. */
+    private void setupSummaries() {
+        com.finance.util.UiFormat.watchItems(transactionsTable, () -> {
+            BigDecimal net = BigDecimal.ZERO;
+            if (transactionsTable.getItems() != null) {
+                for (Transaction t : transactionsTable.getItems()) {
+                    if (t.getAmount() == null) continue;
+                    if (t.getType() == Transaction.TransactionType.INCOME) net = net.add(t.getAmount());
+                    else if (t.getType() == Transaction.TransactionType.EXPENSE) net = net.subtract(t.getAmount());
+                }
+            }
+            com.finance.util.UiFormat.setText(txNetLabel, com.finance.util.UiFormat.money(net));
+        });
+        com.finance.util.UiFormat.watchItems(categoriesTable, () -> {
+            int income = 0, expense = 0, all = 0;
+            if (categoriesTable.getItems() != null) {
+                for (Category c : categoriesTable.getItems()) {
+                    all++;
+                    if (c.getType() == Category.CategoryType.INCOME) income++;
+                    else if (c.getType() == Category.CategoryType.EXPENSE) expense++;
+                }
+            }
+            com.finance.util.UiFormat.setText(categoriesCountLabel, String.valueOf(all));
+            com.finance.util.UiFormat.setText(incomeCategoriesCountLabel, String.valueOf(income));
+            com.finance.util.UiFormat.setText(expenseCategoriesCountLabel, String.valueOf(expense));
+        });
+    }
+
     private void setupTransactionTable() {
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
 
         typeColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getType().name().toUpperCase()));
+        com.finance.util.UiFormat.chipColumn(typeColumn, v -> v, com.finance.util.UiFormat::typeChipClass);
+        com.finance.util.UiFormat.amountColumn(amountColumn, (tx, v) -> tx == null ? com.finance.util.UiFormat.Tone.NEUTRAL
+                : tx.getType() == Transaction.TransactionType.INCOME ? com.finance.util.UiFormat.Tone.POS
+                : tx.getType() == Transaction.TransactionType.EXPENSE ? com.finance.util.UiFormat.Tone.NEG : com.finance.util.UiFormat.Tone.NEUTRAL);
 
         accountColumn.setCellValueFactory(cd -> {
             Transaction tx = cd.getValue();
@@ -206,7 +244,7 @@ public class TransactionController {
             public Category fromString(String s) { return null; }
         });
         categoryFilterComboBox.setOnAction(e -> loadTransactionsPage(0));
-        dateFilter.valueProperty().addListener((obs, o, n) -> loadTransactionsPage(0));
+        dateFilter.setOnChange(() -> loadTransactionsPage(0));
 
         accountFilterComboBox.setConverter(new StringConverter<Account>() {
             public String toString(Account a) {
@@ -243,7 +281,8 @@ public class TransactionController {
     private void loadTransactionsPage(int page) {
         Category selectedCategory = categoryFilterComboBox.getValue();
         Long categoryId = (selectedCategory != null && selectedCategory.getId() != null) ? selectedCategory.getId() : null;
-        LocalDate selectedDate = dateFilter.getValue();
+        LocalDate startDate = dateFilter.getStart();
+        LocalDate endDate = dateFilter.getEnd();
         Account selectedAccount = accountFilterComboBox.getValue();
         Long accountId = (selectedAccount != null && selectedAccount.getId() != null) ? selectedAccount.getId() : null;
         String selectedTypeStr = typeFilterComboBox.getValue();
@@ -254,7 +293,7 @@ public class TransactionController {
         Pageable pageable = PageRequest.of(page, pageSize);
         Page<Transaction> result = transactionService.getTransactionsPage(sessionContext.getCurrentUserId(),
                 Arrays.asList(Transaction.TransactionType.INCOME, Transaction.TransactionType.EXPENSE),
-                categoryId, selectedDate, accountId, filterType, pageable);
+                categoryId, startDate, endDate, accountId, filterType, pageable);
 
         txCurrentPage = result.getNumber();
         txTotalPages = Math.max(result.getTotalPages(), 1);
@@ -277,7 +316,7 @@ public class TransactionController {
     @FXML
     public void handleClearFilters() {
         categoryFilterComboBox.setValue(ALL_CATEGORIES_OPTION);
-        dateFilter.setValue(null);
+        dateFilter.clear();
         accountFilterComboBox.setValue(ALL_ACCOUNTS_OPTION);
         typeFilterComboBox.setValue("All Types");
         loadTransactionsPage(0);
@@ -620,6 +659,7 @@ public class TransactionController {
         catIdColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         catNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         catTypeColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getType().name()));
+        com.finance.util.UiFormat.chipColumn(catTypeColumn, v -> v, com.finance.util.UiFormat::typeChipClass);
 
         categoriesTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
             if (sel != null) {
@@ -687,14 +727,14 @@ public class TransactionController {
     }
 
     private boolean confirm(String msg) {
-        Alert a = new Alert(Alert.AlertType.CONFIRMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION);
         a.setTitle("Confirm"); a.setHeaderText(null);
         setWrappedContent(a, msg);
         Optional<ButtonType> r = a.showAndWait(); return r.isPresent() && r.get() == ButtonType.OK;
     }
 
     private void showAlert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         a.setTitle(title); a.setHeaderText(null);
         setWrappedContent(a, msg);
         a.showAndWait();

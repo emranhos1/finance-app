@@ -47,6 +47,11 @@ public class Account {
     @Builder.Default
     private Boolean includeInTotal = false;
 
+    /** A matured account: balance 0, kept in the list, but no edits and no transactions. */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean closed = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

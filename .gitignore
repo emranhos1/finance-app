@@ -42,5 +42,6 @@ dist/
 src/main/resources/credentials.json
 tokens/
 
-# Local bug list, not part of the repo
-BUG_TRACKER.md
+# Local working folders (design review notes, task tracker), not part of the repo
+design-review/
+doc/

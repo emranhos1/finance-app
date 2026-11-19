@@ -97,6 +97,8 @@ public class CalculatorController {
         noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("typeText"));
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amountText"));
+        com.finance.util.UiFormat.amountTextColumn(amountColumn, e -> e.getSignedValue() >= 0 ? com.finance.util.UiFormat.Tone.POS : com.finance.util.UiFormat.Tone.NEG);
+        com.finance.util.UiFormat.chipColumn(typeColumn, v -> v, v -> "+".equals(v) ? "chip-income" : "chip-expense");
         entryTableView.setItems(entries);
 
         categoryComboBox.setConverter(new StringConverter<Category>() {
@@ -218,7 +220,7 @@ public class CalculatorController {
     }
 
     private void updateTotalLabel() {
-        totalLabel.setText(String.format(Locale.US, "৳ %.2f", runningTotal));
+        totalLabel.setText(com.finance.util.UiFormat.money(runningTotal));
     }
 
     private void showError(String message) {
@@ -251,7 +253,7 @@ public class CalculatorController {
         }
 
         public String getAmountText() {
-            return String.format(Locale.US, "৳ %.2f", amount);
+            return com.finance.util.UiFormat.money(amount);
         }
     }
 }
