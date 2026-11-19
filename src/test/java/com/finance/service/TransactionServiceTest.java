@@ -311,4 +311,32 @@ class TransactionServiceTest {
 
         assertThat(bank.getBalance()).isEqualByComparingTo("1100.00");
     }
+
+    @Test
+    void matureAccount_movesPrincipalPlusInterestToTargetAndClosesAccount() {
+        com.finance.entity.AccountType dpsType = com.finance.entity.AccountType.builder().hasMaturity(true).build();
+        Account dps = Account.builder().id(3L).userId(1L).name("DPS").accountType(dpsType)
+                .balance(new BigDecimal("240000.00")).build();
+        when(accountRepository.findById(3L)).thenReturn(Optional.of(dps));
+
+        transactionService.matureAccount(1L, 3L, 1L, new BigDecimal("5000.00"), null);
+
+        assertThat(dps.getBalance()).isEqualByComparingTo("0.00");
+        assertThat(dps.getClosed()).isTrue();
+        assertThat(bank.getBalance()).isEqualByComparingTo("246000.00");
+    }
+
+    @Test
+    void matureAccount_sameTargetOrNegativeInterest_isRefused() {
+        com.finance.entity.AccountType dpsType = com.finance.entity.AccountType.builder().hasMaturity(true).build();
+        Account dps = Account.builder().id(3L).userId(1L).name("DPS").accountType(dpsType)
+                .balance(new BigDecimal("1000.00")).build();
+        when(accountRepository.findById(3L)).thenReturn(Optional.of(dps));
+
+        assertThatThrownBy(() -> transactionService.matureAccount(1L, 3L, 3L, BigDecimal.ZERO, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> transactionService.matureAccount(1L, 3L, 1L, new BigDecimal("-1"), null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(dps.getClosed()).isFalse();
+    }
 }

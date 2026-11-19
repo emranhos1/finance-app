@@ -5,20 +5,21 @@
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.AccountsController"
-      spacing="10" styleClass="content-pane">
+      spacing="10" styleClass="content-pane, acc-page">
 
-    <TabPane VBox.vgrow="ALWAYS">
+    <TabPane styleClass="line-tabs" VBox.vgrow="ALWAYS">
 
         <!-- accounts tab -->
         <Tab text="Accounts" closable="false">
-            <HBox spacing="15" styleClass="tab-content">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" styleClass="tab-content">
 
                 <VBox spacing="8" styleClass="form-pane">
                     <Label text="Account Name"/>
                     <TextField fx:id="nameField" promptText="Enter account name"/>
 
                     <Label text="Account Type"/>
-                    <ComboBox fx:id="typeComboBox" maxWidth="Infinity"/>
+                    <ComboBox fx:id="typeComboBox" maxWidth="Infinity" promptText="Select Type"/>
 
                     <Label text="Initial Balance"/>
                     <TextField fx:id="balanceField" promptText="0.00"/>
@@ -32,19 +33,30 @@
                         <TextField fx:id="installmentField" promptText="0.00"/>
                     </VBox>
 
-                    <Label text="Low Balance Alert Threshold (optional)"/>
-                    <TextField fx:id="lowBalanceThresholdField" promptText="e.g. 500 — warn when balance falls below this"/>
+                    <Label text="Low Balance Alert (optional)"/>
+                    <TextField fx:id="lowBalanceThresholdField" promptText="e.g. 500"/>
+
+                    <!-- edit mode only, for accounts whose type has maturity -->
+                    <CheckBox fx:id="isMaturedCheck" text="Is Matured" managed="false" visible="false"/>
+                    <VBox fx:id="maturedBox" spacing="8" managed="false" visible="false">
+                        <Label text="Interest Amount"/>
+                        <TextField fx:id="interestField" promptText="0.00"/>
+
+                        <Label text="Add Money To Account"/>
+                        <ComboBox fx:id="maturedTargetCombo" maxWidth="Infinity"/>
+                    </VBox>
 
                     <Button fx:id="accAddBtn" text="Add Account" onAction="#handleAddAccount" maxWidth="Infinity" styleClass="btn-primary"/>
 
                     <HBox fx:id="accEditButtons" spacing="8" managed="false" visible="false">
                         <Button text="Update" onAction="#handleUpdateAccount" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteAccount" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                        <Button text="Cancel" onAction="#handleCancelAccount" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                        <Button text="Cancel" onAction="#handleCancelAccount" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
                 </VBox>
 
-                <TableView fx:id="accountsTable" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <TableView fx:id="accountsTable" VBox.vgrow="ALWAYS" minHeight="200">
                     <columns>
                         <TableColumn fx:id="idColumn"      text="ID"      prefWidth="50"/>
                         <TableColumn fx:id="nameColumn"    text="Name"    prefWidth="150"/>
@@ -52,15 +64,53 @@
                         <TableColumn fx:id="balanceColumn" text="Balance" prefWidth="110"/>
                         <TableColumn fx:id="maturityColumn"    text="Maturity Date" prefWidth="110"/>
                         <TableColumn fx:id="installmentColumn" text="Installment"   prefWidth="100"/>
+                        <TableColumn fx:id="statusColumn"      text="Status"        prefWidth="80"/>
                     </columns>
                     <placeholder><Label text="No accounts yet"/></placeholder>
                 </TableView>
+
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Button fx:id="openPrevPageBtn" text="◀ Prev" onAction="#handleOpenPrevPage" styleClass="btn-secondary, btn-pager"/>
+                    <Label fx:id="openPageLabel" text="Page 1 of 1"/>
+                    <Button fx:id="openNextPageBtn" text="Next ▶" onAction="#handleOpenNextPage" styleClass="btn-secondary, btn-pager"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Rows per page:"/>
+                    <ComboBox fx:id="openPageSizeComboBox" prefWidth="80"/>
+                </HBox>
+
+                <!-- divider between the open and the closed accounts -->
+                <Separator/>
+
+                <TableView fx:id="closedAccountsTable" VBox.vgrow="ALWAYS" minHeight="150">
+                    <columns>
+                        <TableColumn fx:id="closedIdColumn"      text="ID"      prefWidth="50"/>
+                        <TableColumn fx:id="closedNameColumn"    text="Name"    prefWidth="150"/>
+                        <TableColumn fx:id="closedTypeColumn"    text="Type"    prefWidth="90"/>
+                        <TableColumn fx:id="closedBalanceColumn" text="Balance" prefWidth="110"/>
+                        <TableColumn fx:id="closedMaturityColumn"    text="Maturity Date" prefWidth="110"/>
+                        <TableColumn fx:id="closedInstallmentColumn" text="Installment"   prefWidth="100"/>
+                        <TableColumn fx:id="closedStatusColumn"      text="Status"        prefWidth="80"/>
+                    </columns>
+                    <placeholder><Label text="No closed accounts"/></placeholder>
+                </TableView>
+
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Button fx:id="closedPrevPageBtn" text="◀ Prev" onAction="#handleClosedPrevPage" styleClass="btn-secondary, btn-pager"/>
+                    <Label fx:id="closedPageLabel" text="Page 1 of 1"/>
+                    <Button fx:id="closedNextPageBtn" text="Next ▶" onAction="#handleClosedNextPage" styleClass="btn-secondary, btn-pager"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Rows per page:"/>
+                    <ComboBox fx:id="closedPageSizeComboBox" prefWidth="80"/>
+                </HBox>
+                </VBox>
             </HBox>
+            </ScrollPane>
         </Tab>
 
         <!-- account types tab -->
         <Tab text="Account Types" closable="false">
-            <HBox spacing="15" styleClass="tab-content">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" styleClass="tab-content">
 
                 <VBox spacing="8" styleClass="form-pane">
                     <Label text="Type Name"/>
@@ -72,11 +122,12 @@
                     <HBox fx:id="typeEditButtons" spacing="8" managed="false" visible="false">
                         <Button text="Update" onAction="#handleUpdateType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                        <Button text="Cancel" onAction="#handleCancelType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                        <Button text="Cancel" onAction="#handleCancelType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
                 </VBox>
 
-                <TableView fx:id="typesTable" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <TableView fx:id="typesTable" VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="typeIdColumn"   text="ID"   prefWidth="60"/>
                         <TableColumn fx:id="typeNameColumn" text="Name" prefWidth="240"/>
@@ -84,7 +135,18 @@
                     </columns>
                     <placeholder><Label text="No account types yet. Add some!"/></placeholder>
                 </TableView>
+
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Button fx:id="typesPrevPageBtn" text="◀ Prev" onAction="#handleTypesPrevPage" styleClass="btn-secondary, btn-pager"/>
+                    <Label fx:id="typesPageLabel" text="Page 1 of 1"/>
+                    <Button fx:id="typesNextPageBtn" text="Next ▶" onAction="#handleTypesNextPage" styleClass="btn-secondary, btn-pager"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Rows per page:"/>
+                    <ComboBox fx:id="typesPageSizeComboBox" prefWidth="80"/>
+                </HBox>
+                </VBox>
             </HBox>
+            </ScrollPane>
         </Tab>
 
     </TabPane>

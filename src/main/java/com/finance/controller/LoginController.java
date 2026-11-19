@@ -61,6 +61,7 @@ public class LoginController {
     public void initialize() {
         String version = "Version " + updateService.getCurrentVersion();
         versionLabel.setText(version + "  ·  checking for updates...");
+        addThemeMenu();
         Thread check = new Thread(() -> {
             UpdateService.CheckResult result = updateService.checkForUpdate();
             Platform.runLater(() -> {
@@ -99,6 +100,52 @@ public class LoginController {
             double bannerHeight = updateBanner.prefHeight(width);
             double spacing = updateBanner.getParent() instanceof VBox ? ((VBox) updateBanner.getParent()).getSpacing() : 0;
             growWindow(bannerHeight + spacing);
+        }
+    }
+
+    /** A small button in the top-right corner of the login window: just the theme names, a pick applies it at once. */
+    private void addThemeMenu() {
+        // with a single theme there is nothing to choose
+        if (com.finance.theme.ThemeManager.Theme.values().length < 2) return;
+        if (!(versionLabel.getParent() instanceof VBox)) return;
+        com.finance.theme.ThemeManager.Theme current = com.finance.theme.ThemeManager.getCurrent();
+        javafx.scene.control.MenuButton themeButton = new javafx.scene.control.MenuButton(current.getDisplayName());
+        themeButton.getStyleClass().add("login-theme-btn");
+        themeButton.setFocusTraversable(false);
+        ToggleGroup group = new ToggleGroup();
+        for (com.finance.theme.ThemeManager.Theme theme : com.finance.theme.ThemeManager.Theme.values()) {
+            javafx.scene.control.RadioMenuItem item = new javafx.scene.control.RadioMenuItem(theme.getDisplayName());
+            item.setToggleGroup(group);
+            item.setSelected(theme == current);
+            item.setOnAction(e -> switchTheme(theme));
+            themeButton.getItems().add(item);
+        }
+        VBox card = (VBox) versionLabel.getParent();
+        // top-right corner of the window, floating: not managed, so it never pushes the login fields down
+        themeButton.setManaged(false);
+        Runnable place = () -> {
+            themeButton.applyCss();
+            double w = themeButton.prefWidth(-1);
+            double h = themeButton.prefHeight(-1);
+            themeButton.resize(w, h);
+            themeButton.relocate(Math.max(0, card.getWidth() - w - 14), 8);
+        };
+        card.widthProperty().addListener((o, a, b) -> place.run());
+        card.sceneProperty().addListener((o, a, b) -> javafx.application.Platform.runLater(place));
+        card.getChildren().add(themeButton);
+        javafx.application.Platform.runLater(place);
+    }
+
+    /** Saves the pick, restyles every window and rebuilds the login screen, whose layout differs per theme. */
+    private void switchTheme(com.finance.theme.ThemeManager.Theme theme) {
+        if (theme == com.finance.theme.ThemeManager.getCurrent()) return;
+        // a Dashboard from an earlier session may still be registered: nothing to rebuild on the login screen
+        com.finance.theme.ThemeManager.setOnThemeChanged(null);
+        com.finance.theme.ThemeManager.setTheme(theme);
+        try {
+            FinanceApplication.showLoginScreen();
+        } catch (Exception ex) {
+            showAlert("Error", "Could not apply the theme: " + ex.getMessage());
         }
     }
 
@@ -154,7 +201,7 @@ public class LoginController {
         }
         content.getChildren().add(notes);
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         alert.setTitle("What's new in " + availableUpdate.getVersion());
         alert.setHeaderText(null);
         alert.getDialogPane().setContent(content);
@@ -242,13 +289,14 @@ public class LoginController {
     @FXML
     public void handleRegister() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(com.finance.theme.ThemeManager.resolveFxml("/fxml/Register.fxml")));
             loader.setControllerFactory(FinanceApplication.getApplicationContext()::getBean);
             Parent root = loader.load();
 
-            Stage registerStage = new Stage();
+            Stage registerStage = new Stage(javafx.stage.StageStyle.UNDECORATED);
             registerStage.setTitle("Register New Account");
-            registerStage.setScene(new Scene(root, 400, 480));
+            registerStage.setScene(new Scene(com.finance.util.WindowChrome.wrap(registerStage,
+                    com.finance.util.UiFormat.scrollable(root), false), 400, 480 + com.finance.util.WindowChrome.BAR_HEIGHT));
             registerStage.show();
         } catch (IOException e) {
             showAlert("Error", "Failed to open registration window");
@@ -258,13 +306,14 @@ public class LoginController {
     @FXML
     public void handleForgotPassword() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ForgotPassword.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(com.finance.theme.ThemeManager.resolveFxml("/fxml/ForgotPassword.fxml")));
             loader.setControllerFactory(FinanceApplication.getApplicationContext()::getBean);
             Parent root = loader.load();
 
-            Stage forgotPasswordStage = new Stage();
+            Stage forgotPasswordStage = new Stage(javafx.stage.StageStyle.UNDECORATED);
             forgotPasswordStage.setTitle("Reset Password");
-            forgotPasswordStage.setScene(new Scene(root, 400, 420));
+            forgotPasswordStage.setScene(new Scene(com.finance.util.WindowChrome.wrap(forgotPasswordStage,
+                    com.finance.util.UiFormat.scrollable(root), false), 400, 420 + com.finance.util.WindowChrome.BAR_HEIGHT));
             forgotPasswordStage.show();
         } catch (IOException e) {
             showAlert("Error", "Failed to open reset password window");
@@ -272,7 +321,7 @@ public class LoginController {
     }
 
     private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
+        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

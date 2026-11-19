@@ -5,6 +5,7 @@ import com.finance.context.SessionContext;
 import com.finance.service.AutoBackupService;
 import com.finance.service.IGoogleDriveService;
 import com.finance.service.UserService;
+import com.finance.theme.ThemeManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
@@ -16,6 +17,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
@@ -71,18 +73,52 @@ public class DashboardController {
     private Button adminBtn;
 
     @FXML
+    private Button themeBtn;
+
+    @FXML
     private Button changePasswordBtn;
 
     @FXML
     private Button logoutBtn;
 
+    // sidebar collapse: optional, a layout may leave any of these out
+    @FXML private VBox sidebarVBox;
+    @FXML private Node sidebarLogoTile;
+    @FXML private Node sidebarLogoText;
+    @FXML private Node sidebarSpacer;
+    @FXML private Button sidebarToggleBtn;
+    /** Kept in the controller so a shell rebuild (theme change) keeps the choice. */
+    private boolean sidebarCollapsed;
+
+    private void applySidebarState() {
+        if (sidebarVBox == null) return;
+        sidebarVBox.getStyleClass().remove("sidebar-collapsed");
+        if (sidebarCollapsed) sidebarVBox.getStyleClass().add("sidebar-collapsed");
+        for (Node n : new Node[]{sidebarLogoTile, sidebarLogoText, sidebarSpacer}) {
+            if (n != null) { n.setVisible(!sidebarCollapsed); n.setManaged(!sidebarCollapsed); }
+        }
+        for (Node n : sidebarVBox.getChildren()) {
+            if (n instanceof Button && n.getStyleClass().contains("sidebar-btn")) {
+                Button b = (Button) n;
+                b.setContentDisplay(sidebarCollapsed ? javafx.scene.control.ContentDisplay.GRAPHIC_ONLY
+                        : javafx.scene.control.ContentDisplay.LEFT);
+                b.setTooltip(sidebarCollapsed ? new javafx.scene.control.Tooltip(b.getText()) : null);
+            }
+        }
+    }
+
     @FXML
     public void initialize() {
+        if (sidebarToggleBtn != null) {
+            sidebarToggleBtn.setOnAction(e -> { sidebarCollapsed = !sidebarCollapsed; applySidebarState(); });
+        }
+        applySidebarState();
         dashboardBtn.setOnAction(e -> { loadView("/fxml/DashboardHome.fxml"); setActiveButton(dashboardBtn); });
         accountsBtn.setOnAction(e -> { loadView("/fxml/Accounts.fxml"); setActiveButton(accountsBtn); });
         transactionBtn.setOnAction(e -> { loadView("/fxml/Transactions.fxml"); setActiveButton(transactionBtn); });
         reportsBtn.setOnAction(e -> { loadView("/fxml/Reports.fxml"); setActiveButton(reportsBtn); });
         calculatorBtn.setOnAction(e -> { loadView("/fxml/Calculator.fxml"); setActiveButton(calculatorBtn); });
+        themeBtn.setOnAction(e -> { loadView("/fxml/Theme.fxml"); setActiveButton(themeBtn); });
         changePasswordBtn.setOnAction(e -> handleChangePassword());
         logoutBtn.setOnAction(e -> handleLogout());
 
@@ -95,6 +131,28 @@ public class DashboardController {
 
         loadView("/fxml/DashboardHome.fxml");
         setActiveButton(dashboardBtn);
+
+        ThemeManager.setOnThemeChanged(this::reloadShell);
+    }
+
+    /**
+     * The navigation layout belongs to the theme (left sidebar, icon rail, top bar), so a theme change
+     * builds the window shell again from the new theme's Dashboard.fxml and reopens the Theme tab.
+     */
+    private void reloadShell() {
+        Scene scene = mainBorderPane.getScene();
+        if (scene == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(ThemeManager.resolveFxml("/fxml/Dashboard.fxml")));
+            loader.setControllerFactory(FinanceApplication.getApplicationContext()::getBean);
+            // load() runs initialize() on this same controller, which rebinds every field to the new nodes
+            Parent newRoot = loader.load();
+            // keep the window's own title bar around the new shell
+            scene.setRoot(com.finance.util.WindowChrome.wrap((javafx.stage.Stage) scene.getWindow(), newRoot, true));
+            themeBtn.fire();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /** Opens the Loans sub-tab (index 2) from the loan reminder toast. */
@@ -111,7 +169,7 @@ public class DashboardController {
     }
 
     private void setActiveButton(Button active) {
-        for (Button b : new Button[]{dashboardBtn, accountsBtn, transactionBtn, reportsBtn, calculatorBtn, adminBtn}) {
+        for (Button b : new Button[]{dashboardBtn, accountsBtn, transactionBtn, reportsBtn, calculatorBtn, adminBtn, themeBtn}) {
             b.getStyleClass().remove("sidebar-btn-active");
         }
         active.getStyleClass().add("sidebar-btn-active");
@@ -119,27 +177,26 @@ public class DashboardController {
 
     private void loadView(String fxmlPath) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(ThemeManager.resolveFxml(fxmlPath)));
             loader.setControllerFactory(FinanceApplication.getApplicationContext()::getBean);
             Parent view = loader.load();
-            mainBorderPane.setCenter(view);
+            mainBorderPane.setCenter(fxmlPath.endsWith("/Calculator.fxml") ? com.finance.util.UiFormat.scrollable(view) : view);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void handleChangePassword() {
-        Dialog<ButtonType> dialog = new Dialog<>();
+        Dialog<ButtonType> dialog = new com.finance.util.AppDialog<>();
         dialog.setTitle("Change Password");
         dialog.setHeaderText("Change your password");
 
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setPadding(new Insets(20, 10, 10, 10));
+        grid.setPadding(new Insets(20, 10, 4, 10));
 
         PasswordField oldPasswordField = new PasswordField();
         oldPasswordField.setPromptText("Current password");
@@ -155,31 +212,45 @@ public class DashboardController {
         grid.add(new Label("Confirm Password:"), 0, 2);
         grid.add(confirmPasswordField, 1, 2);
 
-        dialog.getDialogPane().setContent(grid);
-
-        // consume the event on error so the dialog stays open
+        // Own Save / Cancel row: equal halves, from the label's left edge to the field's right edge
+        // (the standard button bar is hidden). The dialog stays open on a validation error.
         boolean[] changed = {false};
-        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
-        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
+        Button saveButton = new Button("Save");
+        saveButton.getStyleClass().add("btn-primary");
+        saveButton.setDefaultButton(true);
+        Button cancelButton = new Button("Cancel");
+        cancelButton.getStyleClass().addAll("btn-secondary", "btn-reset");
+        cancelButton.setCancelButton(true);
+        cancelButton.setOnAction(e -> dialog.setResult(ButtonType.CANCEL));
+        saveButton.setOnAction(event -> {
             String newPass = newPasswordField.getText();
             if (newPass == null || newPass.isEmpty()) {
                 showAlert("Validation Error", "New password cannot be empty");
-                event.consume();
                 return;
             }
             if (!newPass.equals(confirmPasswordField.getText())) {
                 showAlert("Validation Error", "New password and confirmation do not match");
-                event.consume();
                 return;
             }
             try {
                 userService.changePassword(sessionContext.getCurrentUserId(), oldPasswordField.getText(), newPass);
                 changed[0] = true;
+                dialog.setResult(saveButtonType);
             } catch (Exception e) {
                 showAlert("Error", e.getMessage());
-                event.consume();
             }
         });
+        HBox buttonRow = new HBox(10, saveButton, cancelButton);
+        for (Button b : new Button[]{saveButton, cancelButton}) {
+            b.setPrefWidth(150);
+            b.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(b, javafx.scene.layout.Priority.ALWAYS);
+        }
+        GridPane.setMargin(buttonRow, new Insets(10, 0, 0, 0));
+        grid.add(buttonRow, 0, 3, 2, 1);
+
+        com.finance.util.DialogChrome.hideStandardButtons(dialog);
+        dialog.getDialogPane().setContent(grid);
 
         dialog.showAndWait();
         if (changed[0]) {
@@ -188,12 +259,12 @@ public class DashboardController {
     }
 
     private void showAlert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         a.setTitle(title); a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
     }
 
     private void handleLogout() {
-        Dialog<Void> dialog = new Dialog<>();
+        Dialog<Void> dialog = new com.finance.util.AppDialog<>();
         dialog.initOwner(logoutBtn.getScene().getWindow());
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.initStyle(StageStyle.UNDECORATED);
@@ -203,17 +274,11 @@ public class DashboardController {
         Node hiddenCancel = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         hiddenCancel.setVisible(false);
         hiddenCancel.setManaged(false);
-        dialog.getDialogPane().setStyle("-fx-background-color: transparent;");
-        if (getClass().getResource("/css/main.css") != null) {
-            dialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
-        }
+        // main.css and the theme are added to the dialog window by ThemeManager
 
         VBox content = new VBox(14);
         content.setPadding(new Insets(20));
-        // undecorated dialog has no border, so it blends into the page behind
-        content.setStyle("-fx-background-color: white; -fx-border-color: #1B5446; -fx-border-width: 2; "
-                + "-fx-border-radius: 6; -fx-background-radius: 6; "
-                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 20, 0.3, 0, 6);");
+        content.getStyleClass().add("logout-box");
         content.setPrefWidth(380);
         dialog.getDialogPane().setContent(content);
 
@@ -261,7 +326,7 @@ public class DashboardController {
         Label statusLabel = new Label("Waiting for Google sign-in in your browser... " + timeoutSeconds + "s");
         statusLabel.setWrapText(true);
         Button cancelBtn = new Button("Cancel");
-        cancelBtn.getStyleClass().add("btn-secondary");
+        cancelBtn.getStyleClass().addAll("btn-secondary", "btn-reset");
         showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel), cancelBtn);
 
         Timeline countdown = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -303,7 +368,7 @@ public class DashboardController {
     private void showBackingUp(Dialog<Void> dialog, VBox content) {
         Label statusLabel = new Label("Backing up your data...");
         Button cancelBtn = new Button("Cancel");
-        cancelBtn.getStyleClass().add("btn-secondary");
+        cancelBtn.getStyleClass().addAll("btn-secondary", "btn-reset");
         showStep(dialog, content, new HBox(12, new ProgressIndicator(), statusLabel), cancelBtn);
 
         Task<Void> backupTask = new Task<>() {
@@ -374,7 +439,7 @@ public class DashboardController {
         // reason can be a very long mysqldump/Google message, so scroll it
         ScrollPane reasonScroll = new ScrollPane(reasonLabel);
         reasonScroll.setFitToWidth(true);
-        reasonScroll.setStyle("-fx-background-color: transparent; -fx-background: white;");
+        reasonScroll.setStyle("-fx-background-color: transparent; -fx-background: -c-surface;");
 
         Label suggestionLabel = new Label("Suggestion: " + suggestion);
         suggestionLabel.setWrapText(true);
@@ -401,7 +466,7 @@ public class DashboardController {
 
     private Button cancelButton(Dialog<Void> dialog) {
         Button cancelBtn = new Button("Cancel");
-        cancelBtn.getStyleClass().add("btn-secondary");
+        cancelBtn.getStyleClass().addAll("btn-secondary", "btn-reset");
         cancelBtn.setOnAction(e -> dialog.close());
         return cancelBtn;
     }

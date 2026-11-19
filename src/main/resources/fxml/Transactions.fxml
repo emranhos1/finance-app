@@ -6,9 +6,9 @@
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
-      spacing="10" style="-fx-padding: 15;">
+      spacing="5" styleClass="txn-page" style="-fx-padding: 8;">
 
-    <TabPane fx:id="mainTabPane" VBox.vgrow="ALWAYS">
+    <TabPane fx:id="mainTabPane" styleClass="line-tabs" VBox.vgrow="ALWAYS">
 
         <Tab text="Transaction" closable="false">
             <fx:include source="Transaction.fxml"/>

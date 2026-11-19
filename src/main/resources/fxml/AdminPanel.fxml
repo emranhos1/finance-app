@@ -11,7 +11,7 @@
 <ScrollPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.finance.controller.AdminPanelController"
             fitToWidth="true">
-<VBox spacing="16" style="-fx-padding: 15;">
+<VBox spacing="8" styleClass="admin-page" style="-fx-padding: 8;">
 
     <Label text="Admin Panel - User Management" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
 
@@ -20,7 +20,7 @@
         <Button text="Deactivate User" onAction="#handleDeactivateUser" style="-fx-padding: 8;" styleClass="btn-accent"/>
     </HBox>
 
-    <GridPane hgap="16">
+    <GridPane hgap="8">
         <columnConstraints>
             <ColumnConstraints percentWidth="50" minWidth="10"/>
             <ColumnConstraints percentWidth="50" minWidth="10"/>
@@ -50,7 +50,7 @@
 
     <Label text="Backup &amp; Restore" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
 
-    <GridPane hgap="16">
+    <GridPane hgap="8" styleClass="admin-backup">
         <columnConstraints>
             <ColumnConstraints percentWidth="33.33" minWidth="10"/>
             <ColumnConstraints percentWidth="33.33" minWidth="10"/>
@@ -63,11 +63,18 @@
             <Label text="Export your data to a .sql file on this computer, or restore your database from a previously saved file."
                    styleClass="card-label" wrapText="true"/>
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Button fx:id="exportLocalBtn" text="Export to Local" onAction="#handleExportLocal" styleClass="btn-primary"/>
-                <Button fx:id="importLocalBtn" text="Import from Local" onAction="#handleImportLocal" styleClass="btn-secondary"/>
-                <ProgressIndicator fx:id="localProgress" prefWidth="22" prefHeight="22"/>
-            </HBox>
+            <!-- two equal-width buttons spanning the card's content width -->
+            <GridPane hgap="8">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="50" minWidth="0"/>
+                    <ColumnConstraints percentWidth="50" minWidth="0"/>
+                </columnConstraints>
+                <Button fx:id="exportLocalBtn" text="Export to Local" onAction="#handleExportLocal" styleClass="btn-primary"
+                        maxWidth="Infinity" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <Button fx:id="importLocalBtn" text="Import from Local" onAction="#handleImportLocal" styleClass="btn-secondary"
+                        maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            </GridPane>
+            <ProgressIndicator fx:id="localProgress" prefWidth="22" prefHeight="22"/>
 
             <Label fx:id="localStatusLabel" text="" wrapText="true"/>
         </VBox>
@@ -78,17 +85,23 @@
             <Label text="Connect your Google Drive account to upload a backup or restore the most recent one from the cloud."
                    styleClass="card-label" wrapText="true"/>
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Button fx:id="connectDriveBtn" text="Connect Google Drive" onAction="#handleConnectDrive" styleClass="btn-secondary"/>
-                <Button fx:id="disconnectDriveBtn" text="Logout Google Drive" onAction="#handleDisconnectDrive" styleClass="btn-secondary" disable="true"/>
-            </HBox>
-
-            <!-- FlowPane so buttons wrap in a narrow card instead of cutting text -->
-            <FlowPane hgap="10" vgap="10" alignment="CENTER_LEFT">
-                <Button fx:id="uploadDriveBtn" text="Upload to Google Drive" onAction="#handleUploadDrive" styleClass="btn-primary" disable="true"/>
-                <Button fx:id="downloadDriveBtn" text="Download &amp; Import from Google Drive" onAction="#handleDownloadDrive" styleClass="btn-secondary" disable="true"/>
-                <ProgressIndicator fx:id="driveProgress" prefWidth="22" prefHeight="22"/>
-            </FlowPane>
+            <!-- 2x2 grid, four equal-width buttons (50/50 columns) -->
+            <GridPane hgap="8" vgap="8" styleClass="drive-grid">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="50" minWidth="0"/>
+                    <ColumnConstraints percentWidth="50" minWidth="0"/>
+                </columnConstraints>
+                <Button fx:id="connectDriveBtn" text="Connect Google Drive" onAction="#handleConnectDrive" styleClass="btn-secondary"
+                        maxWidth="Infinity" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <Button fx:id="disconnectDriveBtn" text="Logout Google Drive" onAction="#handleDisconnectDrive" styleClass="btn-secondary" disable="true"
+                        maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                <Button fx:id="uploadDriveBtn" text="Export to Google Drive" onAction="#handleUploadDrive" styleClass="btn-secondary, btn-reset" disable="true"
+                        maxWidth="Infinity" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <Button fx:id="downloadDriveBtn" text="Import from Google Drive" onAction="#handleDownloadDrive" styleClass="btn-secondary, btn-reset" disable="true"
+                        maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+            </GridPane>
+            <Label fx:id="driveAccountLabel" styleClass="drive-account" wrapText="true" visible="false" managed="false"/>
+            <ProgressIndicator fx:id="driveProgress" prefWidth="22" prefHeight="22"/>
 
             <Label fx:id="driveStatusLabel" text="" wrapText="true"/>
         </VBox>
@@ -98,9 +111,9 @@
             <Label text="Data Integrity" styleClass="card-title"/>
             <Label text="Checks that every account's balance matches its transaction history, and that no transaction points to a loan that no longer exists. Read-only - never changes any data."
                    styleClass="card-label" wrapText="true"/>
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Button fx:id="verifyDataBtn" text="Verify Data" onAction="#handleVerifyData" styleClass="btn-primary"/>
-            </HBox>
+            <!-- full card content width -->
+            <Button fx:id="verifyDataBtn" text="Verify Data" onAction="#handleVerifyData" styleClass="btn-primary"
+                    maxWidth="Infinity"/>
             <TextArea fx:id="integrityReportArea" editable="false" wrapText="true" prefHeight="120"
                       managed="false" visible="false"/>
         </VBox>

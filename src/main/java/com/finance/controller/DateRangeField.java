@@ -32,9 +32,9 @@ public class DateRangeField extends Button {
         setMinWidth(210);
 
         Node calendar = new DatePickerSkin(calendarSource).getPopupContent();
-        hint.setStyle("-fx-font-size: 11; -fx-text-fill: #555555; -fx-padding: 4 6 4 6;");
+        hint.getStyleClass().add("date-range-hint");
         VBox box = new VBox(hint, calendar);
-        box.setStyle("-fx-background-color: white; -fx-border-color: #B7D9CE; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0, 0, 2);");
+        box.getStyleClass().add("date-range-popup");
         popup.getContent().add(box);
         popup.setAutoHide(true);
         popup.setOnHidden(e -> {
@@ -95,10 +95,11 @@ public class DateRangeField extends Button {
             @Override
             public void updateItem(LocalDate item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null || start == null) { setStyle(null); return; }
+                getStyleClass().remove("date-range-in-range");
+                if (empty || item == null || start == null) return;
                 LocalDate last = end != null ? end : start;
                 boolean inRange = !item.isBefore(start) && !item.isAfter(last);
-                setStyle(inRange ? "-fx-background-color: #CFE9DF; -fx-text-fill: #1B5446; -fx-font-weight: bold;" : null);
+                if (inRange) getStyleClass().add("date-range-in-range");
             }
         });
     }

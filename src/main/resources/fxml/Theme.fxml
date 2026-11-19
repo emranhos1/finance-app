@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.finance.controller.ThemeController"
+      styleClass="content-pane, theme-page">
+    <Label text="Pick a look for the whole app. It changes at once and is remembered on this computer."
+           styleClass="hint-text" wrapText="true"/>
+    <ScrollPane fitToWidth="true" styleClass="dash-scroll" VBox.vgrow="ALWAYS">
+        <FlowPane fx:id="themeCardsPane" hgap="7" vgap="7"/>
+    </ScrollPane>
+</VBox>
