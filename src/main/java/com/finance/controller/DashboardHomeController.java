@@ -105,6 +105,10 @@ public class DashboardHomeController {
 
     @FXML
     public void initialize() {
+        // the banners are bold and name accounts / people, which can be Bangla (bold Bangla would show as boxes)
+        com.finance.util.BanglaFont.apply(loanReminderLabel);
+        com.finance.util.BanglaFont.apply(maturityReminderLabel);
+        com.finance.util.BanglaFont.apply(lowBalanceReminderLabel);
         selectedYear = LocalDate.now().getYear();
         monthlyYearCombo.setOnAction(e -> {
             if (updatingYearCombo || monthlyYearCombo.getValue() == null) return;
@@ -196,11 +200,10 @@ public class DashboardHomeController {
 
         Account first = lowAccounts.get(0);
         String message = lowAccounts.size() == 1
-                ? first.getName() + " balance (৳ " + com.finance.util.UiFormat.number(first.getBalance())
-                        + ") is below your ৳ " + com.finance.util.UiFormat.number(first.getLowBalanceThreshold()) + " alert — check the Accounts tab."
+                ? first.getName() + " balance is low: ৳ " + com.finance.util.UiFormat.number(first.getBalance())
+                        + " (alert limit ৳ " + com.finance.util.UiFormat.number(first.getLowBalanceThreshold()) + ")."
                 : lowAccounts.size() + " accounts are below their low-balance alert: "
-                        + lowAccounts.stream().map(Account::getName).collect(java.util.stream.Collectors.joining(", "))
-                        + " — check the Accounts tab.";
+                        + lowAccounts.stream().map(Account::getName).collect(java.util.stream.Collectors.joining(", "));
         lowBalanceReminderLabel.setText(message);
         lowBalanceReminderBanner.setVisible(true);
         lowBalanceReminderBanner.setManaged(true);
@@ -281,9 +284,11 @@ public class DashboardHomeController {
 
             Label badge = new Label(initials(at.getName()));
             badge.getStyleClass().addAll("dash-badge", paletteClass(at.getName()));
+            com.finance.util.BanglaFont.apply(badge);
 
             Label typeLabel = new Label(at.getName());
             typeLabel.getStyleClass().add("dash-account-type");
+            com.finance.util.BanglaFont.apply(typeLabel);
 
             Label amtLabel = new Label(fmt(balance));
             amtLabel.getStyleClass().add("dash-account-amount");

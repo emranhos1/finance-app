@@ -87,7 +87,7 @@ public class LoginController {
 
     private void showUpdateBanner(UpdateService.ReleaseInfo release) {
         availableUpdate = release;
-        updateLabel.setText("New version " + release.getVersion() + " is available (you have "
+        updateLabel.setText("Update " + release.getVersion() + " available (you have "
                 + updateService.getCurrentVersion() + ").");
         updateBanner.setVisible(true);
         updateBanner.setManaged(true);
@@ -212,54 +212,28 @@ public class LoginController {
     @FXML
     public void handleUpdate() {
         if (availableUpdate == null) return;
-        UpdateService.ReleaseInfo release = availableUpdate;
-
-        Preferences prefs = Preferences.userNodeForPackage(LoginController.class);
-        DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("Where should the update " + release.getVersion() + " be downloaded?");
-        File lastFolder = new File(prefs.get(DOWNLOAD_FOLDER_KEY, ""));
-        File downloads = new File(System.getProperty("user.home"), "Downloads");
-        if (lastFolder.isDirectory()) chooser.setInitialDirectory(lastFolder);
-        else if (downloads.isDirectory()) chooser.setInitialDirectory(downloads);
-        File folder = chooser.showDialog(updateButton.getScene().getWindow());
-        if (folder == null) return;
-        prefs.put(DOWNLOAD_FOLDER_KEY, folder.getAbsolutePath());
-
-        updateButton.setDisable(true);
-        updateButton.setText("Downloading...");
-        updateProgress.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
-        updateProgress.setVisible(true);
-        updateProgress.setManaged(true);
-        growWindow(progressBarSpace());
-
-        Thread worker = new Thread(() -> {
-            try {
-                Path installer = updateService.downloadInstaller(release, folder.toPath(),
-                        p -> Platform.runLater(() -> {
-                            updateProgress.setProgress(p);
-                            // floor, so it never shows 100% early
-                            updateButton.setText("Downloading... " + (int) Math.floor(p * 100) + "%");
-                        }));
-                updateService.deleteOldDownloads(installer);
-                updateService.launchInstaller(installer);
-                Platform.runLater(() -> {
-                    Platform.exit();
-                    System.exit(0);
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
+        // the steps are shared with the Dashboard sidebar item (util/UpdateFlow)
+        com.finance.util.UpdateFlow.start(updateButton.getScene().getWindow(), updateService, availableUpdate,
+                () -> {
+                    updateButton.setDisable(true);
+                    updateButton.setText("Downloading...");
+                    updateProgress.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+                    updateProgress.setVisible(true);
+                    updateProgress.setManaged(true);
+                    growWindow(progressBarSpace());
+                },
+                p -> {
+                    updateProgress.setProgress(p);
+                    // floor, so it never shows 100% early
+                    updateButton.setText("Downloading... " + (int) Math.floor(p * 100) + "%");
+                },
+                () -> {
                     updateButton.setDisable(false);
                     updateButton.setText("Update now");
                     updateProgress.setVisible(false);
                     updateProgress.setManaged(false);
                     growWindow(-progressBarSpace());
-                    showAlert("Update failed", "Could not update: " + e.getMessage()
-                            + "\nCheck the internet connection and try again.");
                 });
-            }
-        }, "update-download");
-        worker.setDaemon(true);
-        worker.start();
     }
 
     @FXML

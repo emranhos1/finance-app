@@ -118,6 +118,7 @@ public class LoanController {
 
     @FXML
     public void initialize() {
+        com.finance.util.BanglaFont.apply(historyTitleLabel);   // bold title with the person's name, which can be Bangla
         setupAccountComboBoxes();
         setupPersonComboBox();
         setupTransferTypeComboBox();
