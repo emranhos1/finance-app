@@ -59,6 +59,7 @@ public class AdminPanelController {
     @FXML private Button uploadDriveBtn;
     @FXML private Button downloadDriveBtn;
     @FXML private Label driveStatusLabel;
+    @FXML private Label driveAccountLabel;
     @FXML private ProgressIndicator driveProgress;
 
     @FXML private TextArea integrityReportArea;
@@ -82,6 +83,8 @@ public class AdminPanelController {
         usernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
         roleColumn.setCellValueFactory(new PropertyValueFactory<>("role"));
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+        com.finance.util.UiFormat.chipColumn(statusColumn, s -> com.finance.util.UiFormat.capitalize(s.name()), s -> s == User.UserStatus.active ? "chip-income" : "chip-closed");
+        com.finance.util.UiFormat.chipColumn(roleColumn, r -> com.finance.util.UiFormat.capitalize(r.name()), r -> r == User.UserRole.admin ? "chip-transfer" : null);
     }
 
     private void loadUsers() {
@@ -214,8 +217,8 @@ public class AdminPanelController {
 
     @FXML
     public void handleUploadDrive() {
-        if (!confirm("This will export your current data and upload it to the 'finance_app' folder in your connected Google Drive account:\n"
-                + googleDriveService.getConnectedEmail() + "\n\nContinue?")) return;
+        if (!confirmFullWidth("This will export your current data and upload it to the 'finance_app' folder in your connected Google Drive account:\n",
+                String.valueOf(googleDriveService.getConnectedEmail()), "\n\nContinue?")) return;
 
         runInBackground(driveProgress, driveStatusLabel,
                 new Button[]{connectDriveBtn, disconnectDriveBtn, uploadDriveBtn, downloadDriveBtn},
@@ -234,9 +237,9 @@ public class AdminPanelController {
 
     @FXML
     public void handleDownloadDrive() {
-        if (!confirm("This will download the most recent backup from the 'finance_app' folder in your Google Drive account ("
-                + googleDriveService.getConnectedEmail()
-                + ") and use it to overwrite your current local database.\n\nContinue?")) return;
+        if (!confirmFullWidth("This will download the most recent backup from the 'finance_app' folder in your Google Drive account:\n",
+                String.valueOf(googleDriveService.getConnectedEmail()),
+                "\n\nand use it to overwrite your current local database.\n\nContinue?")) return;
 
         runInBackground(driveProgress, driveStatusLabel,
                 new Button[]{connectDriveBtn, disconnectDriveBtn, uploadDriveBtn, downloadDriveBtn},
@@ -315,10 +318,18 @@ public class AdminPanelController {
         disconnectDriveBtn.setDisable(!connected);
         uploadDriveBtn.setDisable(!connected);
         downloadDriveBtn.setDisable(!connected);
+        // connected Google account: bigger and bold, shown only while connected
+        if (driveAccountLabel != null) {
+            String email = connected ? googleDriveService.getConnectedEmail() : null;
+            boolean show = email != null && !email.isEmpty();
+            driveAccountLabel.setText(show ? "Google account: " + email : "");
+            driveAccountLabel.setVisible(show);
+            driveAccountLabel.setManaged(show);
+        }
     }
 
     private boolean confirm(String message) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message);
+        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION, message);
         alert.setTitle("Confirm");
         alert.setHeaderText(null);
         alert.getDialogPane().setMinWidth(560);
@@ -326,8 +337,48 @@ public class AdminPanelController {
         return alert.showAndWait().filter(b -> b == ButtonType.OK).isPresent();
     }
 
+    /** Confirm with an own OK / Cancel row: equal width, side by side, full dialog width (standard button bar hidden). */
+    private boolean confirmFullWidth(String before, String account, String after) {
+        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirm");
+        alert.setHeaderText(null);
+        alert.setGraphic(null);
+        alert.getDialogPane().setMinWidth(560);
+        alert.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+
+        // the Google account is bigger and bold
+        javafx.scene.text.Text t1 = new javafx.scene.text.Text(before);
+        javafx.scene.text.Text t2 = new javafx.scene.text.Text(account);
+        javafx.scene.text.Text t3 = new javafx.scene.text.Text(after);
+        t1.setStyle("-fx-fill: #1c2b26;");
+        t3.setStyle("-fx-fill: #1c2b26;");
+        t2.setStyle("-fx-fill: #14463a; -fx-font-weight: bold; -fx-font-size: 16px;");
+        javafx.scene.text.TextFlow msg = new javafx.scene.text.TextFlow(t1, t2, t3);
+        msg.setPrefWidth(520);   // fixed width: an unconstrained wrapped text made the dialog huge
+        msg.setMaxWidth(520);
+
+        Button okBtn = new Button("OK");
+        okBtn.getStyleClass().add("btn-primary");
+        okBtn.setDefaultButton(true);
+        okBtn.setOnAction(e -> alert.setResult(ButtonType.OK));
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn-secondary", "btn-reset");
+        cancelBtn.setCancelButton(true);
+        cancelBtn.setOnAction(e -> alert.setResult(ButtonType.CANCEL));
+        javafx.scene.layout.HBox row = new javafx.scene.layout.HBox(10, okBtn, cancelBtn);
+        for (Button b : new Button[]{okBtn, cancelBtn}) {
+            b.setPrefWidth(150);
+            b.setMaxWidth(Double.MAX_VALUE);
+            javafx.scene.layout.HBox.setHgrow(b, javafx.scene.layout.Priority.ALWAYS);
+        }
+
+        com.finance.util.DialogChrome.hideStandardButtons(alert);
+        alert.getDialogPane().setContent(new javafx.scene.layout.VBox(14, msg, row));
+        return alert.showAndWait().filter(b -> b == ButtonType.OK).isPresent();
+    }
+
     private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        Alert alert = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

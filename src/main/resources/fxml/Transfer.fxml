@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import com.finance.controller.DateRangeField?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.TransferController"
-      spacing="10" styleClass="content-pane">
+      spacing="5" style="-fx-padding: 8;">
 
     <TabPane VBox.vgrow="ALWAYS">
 
         <!-- transfer tab -->
         <Tab text="Transfer" closable="false">
-            <HBox spacing="15" styleClass="tab-content">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" styleClass="tab-content" style="-fx-padding: 5;">
 
                 <VBox spacing="8" styleClass="form-pane">
 
@@ -19,21 +21,21 @@
                     <DatePicker fx:id="datePicker" maxWidth="Infinity"/>
 
                     <Label text="From Account"/>
-                    <ComboBox fx:id="fromAccountComboBox" maxWidth="Infinity"/>
-                    <Label fx:id="fromBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
+                    <ComboBox fx:id="fromAccountComboBox" maxWidth="Infinity" promptText="Select Account"/>
+                    <Label fx:id="fromBalanceLabel" text="" styleClass="hint-label"/>
 
                     <Label text="To Account"/>
-                    <ComboBox fx:id="toAccountComboBox" maxWidth="Infinity"/>
-                    <Label fx:id="toBalanceLabel" text="" style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"/>
+                    <ComboBox fx:id="toAccountComboBox" maxWidth="Infinity" promptText="Select Account"/>
+                    <Label fx:id="toBalanceLabel" text="" styleClass="hint-label"/>
 
                     <Label text="Transfer Type"/>
-                    <ComboBox fx:id="transferTypeComboBox" maxWidth="Infinity"/>
+                    <ComboBox fx:id="transferTypeComboBox" maxWidth="Infinity" promptText="Select Type"/>
 
                     <Label text="Amount"/>
                     <TextField fx:id="amountField" promptText="0.00"/>
 
                     <Label text="Note"/>
-                    <TextArea fx:id="noteArea" prefHeight="80" wrapText="true"/>
+                    <TextArea fx:id="noteArea" prefRowCount="1" prefHeight="38" minHeight="38" wrapText="true"/>
 
                     <Button fx:id="saveTransferBtn" text="Save Transfer"
                             onAction="#handleSaveTransfer" maxWidth="Infinity" styleClass="btn-primary"/>
@@ -41,23 +43,21 @@
                     <HBox fx:id="txEditButtons" spacing="8" visible="false" managed="false">
                         <Button text="Update" onAction="#handleUpdateTransfer" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteTransfer" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                        <Button text="Cancel" onAction="#handleCancelTransfer" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                        <Button text="Cancel" onAction="#handleCancelTransfer" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
 
                 </VBox>
 
                 <VBox spacing="6" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                    <!-- the search options sit on a card -->
+                    <VBox spacing="6" styleClass="form-pane">
                     <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="Transfer Type:"/>
-                        <ComboBox fx:id="transferTypeFilterComboBox" prefWidth="160"/>
-                        <Label text="Date:"/>
-                        <DatePicker fx:id="dateFilter" prefWidth="140"/>
+                        <ComboBox fx:id="transferTypeFilterComboBox" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <DateRangeField fx:id="dateFilter" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="accountFilterComboBox" prefWidth="140" minWidth="110" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <Button text="Clear" onAction="#handleClearFilters" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="Account:"/>
-                        <ComboBox fx:id="accountFilterComboBox" prefWidth="180"/>
-                        <Button text="Clear" onAction="#handleClearFilters" styleClass="btn-secondary"/>
-                    </HBox>
+                    </VBox>
                     <TableView fx:id="transfersTable" VBox.vgrow="ALWAYS">
                         <columns>
                             <TableColumn fx:id="dateColumn"         text="Date"          prefWidth="95"/>
@@ -72,9 +72,9 @@
                     </TableView>
 
                     <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Button fx:id="trPrevPageBtn" text="◀ Prev" onAction="#handleTrPrevPage" styleClass="btn-secondary"/>
+                        <Button fx:id="trPrevPageBtn" text="◀ Prev" onAction="#handleTrPrevPage" styleClass="btn-secondary, btn-pager"/>
                         <Label fx:id="trPageLabel" text="Page 1 of 1"/>
-                        <Button fx:id="trNextPageBtn" text="Next ▶" onAction="#handleTrNextPage" styleClass="btn-secondary"/>
+                        <Button fx:id="trNextPageBtn" text="Next ▶" onAction="#handleTrNextPage" styleClass="btn-secondary, btn-pager"/>
                         <Region HBox.hgrow="ALWAYS"/>
                         <Label text="Rows per page:"/>
                         <ComboBox fx:id="trPageSizeComboBox" prefWidth="80"/>
@@ -82,11 +82,13 @@
                 </VBox>
 
             </HBox>
+            </ScrollPane>
         </Tab>
 
         <!-- transfer types tab -->
         <Tab text="Transfer Types" closable="false">
-            <HBox spacing="15" styleClass="tab-content">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" styleClass="tab-content" style="-fx-padding: 5;">
 
                 <VBox spacing="8" styleClass="form-pane">
                     <Label text="Type Name"/>
@@ -97,7 +99,7 @@
                     <HBox fx:id="typeEditButtons" spacing="8" managed="false" visible="false">
                         <Button text="Update" onAction="#handleUpdateType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                         <Button text="Delete" onAction="#handleDeleteType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                        <Button text="Cancel" onAction="#handleCancelType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                        <Button text="Cancel" onAction="#handleCancelType" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                     </HBox>
                 </VBox>
 
@@ -109,6 +111,7 @@
                     <placeholder><Label text="No transfer types yet. Add some!"/></placeholder>
                 </TableView>
             </HBox>
+            </ScrollPane>
         </Tab>
 
     </TabPane>

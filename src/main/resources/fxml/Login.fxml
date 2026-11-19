@@ -13,14 +13,15 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.text.Font?>
 
+<!-- The ONE Login layout for every theme. Sizes, fonts and spacing live in main.css (".login-*" rules), colours come
+     from the theme's -c-* variables. Do not add a themed copy of this file and do not put sizes or fonts inline here. -->
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.LoginController"
-      alignment="CENTER" spacing="8" style="-fx-padding: 15 45 15 45;">
+      alignment="CENTER" spacing="8" styleClass="login-card">
 
     <!-- shown only when a newer release exists -->
-    <VBox fx:id="updateBanner" spacing="4" visible="false" managed="false"
-          style="-fx-background-color: #FFF4D6; -fx-border-color: #E8C46A; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8;">
-        <Label fx:id="updateLabel" wrapText="true" style="-fx-font-weight: bold;"/>
+    <VBox fx:id="updateBanner" spacing="4" visible="false" managed="false" styleClass="update-banner">
+        <Label fx:id="updateLabel" wrapText="true"/>
         <HBox spacing="8" alignment="CENTER_LEFT">
             <Button fx:id="updateButton" text="Update now" styleClass="btn-primary" onAction="#handleUpdate"/>
             <Hyperlink text="What's new?" onAction="#handleShowReleaseNotes"/>
@@ -33,24 +34,24 @@
         <Image url="@/images/logo.png" />
     </ImageView>
 
-    <Label text="Daily Finance Management System" style="-fx-font-size: 17; -fx-font-weight: bold;" styleClass="app-title" textAlignment="CENTER" wrapText="true"/>
+    <Label text="Daily Finance Management System" styleClass="app-title, login-title" textAlignment="CENTER" wrapText="true"/>
 
     <HBox spacing="8" alignment="CENTER_LEFT">
-        <Label text="Username" prefWidth="72"/>
-        <TextField fx:id="usernameField" promptText="Enter your username" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Label text="Username" styleClass="login-label"/>
+        <TextField fx:id="usernameField" promptText="Enter your username" styleClass="login-field" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
 
     <HBox spacing="8" alignment="CENTER_LEFT">
-        <Label text="Password" prefWidth="72"/>
-        <PasswordField fx:id="passwordField" promptText="Enter your password" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Label text="Password" styleClass="login-label"/>
+        <PasswordField fx:id="passwordField" promptText="Enter your password" styleClass="login-field" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
 
     <HBox spacing="10" alignment="CENTER">
-        <Button text="Login" defaultButton="true" style="-fx-padding: 8; -fx-font-size: 13;" styleClass="btn-primary" onAction="#handleLogin"/>
-        <Button text="Register" style="-fx-padding: 8; -fx-font-size: 13;" styleClass="btn-secondary" onAction="#handleRegister"/>
+        <Button text="Login" defaultButton="true" styleClass="btn-primary, login-btn" onAction="#handleLogin" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button text="Register" styleClass="btn-secondary, login-btn" onAction="#handleRegister" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
 
-    <Hyperlink text="Forgot Password?" onAction="#handleForgotPassword"/>
+    <Hyperlink text="Forgot Password?" styleClass="login-link" onAction="#handleForgotPassword"/>
 
-    <Label fx:id="versionLabel" style="-fx-font-size: 10; -fx-text-fill: #8AA69C;"/>
+    <Label fx:id="versionLabel" styleClass="version-label"/>
 </VBox>

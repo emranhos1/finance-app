@@ -5,14 +5,13 @@
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.LoanController"
-      spacing="10" styleClass="content-pane">
+      spacing="5" style="-fx-padding: 8;">
 
-    <Label text="Loans (Money Lent &amp; Borrowed)" styleClass="page-title"/>
 
     <TabPane VBox.vgrow="ALWAYS">
 
         <Tab text="Loans" closable="false">
-            <HBox spacing="15" styleClass="tab-content" style="-fx-padding: 10;">
+            <HBox spacing="8" styleClass="tab-content" style="-fx-padding: 5;">
 
                 <ScrollPane fitToWidth="true" styleClass="dash-scroll" hbarPolicy="NEVER" prefWidth="340">
                 <VBox spacing="8" styleClass="form-pane">
@@ -27,10 +26,10 @@
                             <Label text="Account" minWidth="0" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
                             <ComboBox fx:id="personComboBox" maxWidth="Infinity" minWidth="0" promptText="Select a person"
                                       GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                            <ComboBox fx:id="accountComboBox" maxWidth="Infinity" minWidth="0"
+                            <ComboBox fx:id="accountComboBox" maxWidth="Infinity" minWidth="0" promptText="Select Account"
                                       GridPane.columnIndex="1" GridPane.rowIndex="1"/>
                             <Label fx:id="accountBalanceLabel" text="" wrapText="true" minWidth="0"
-                                   style="-fx-font-size: 11; -fx-text-fill: #4F6F66;"
+                                   styleClass="hint-label"
                                    GridPane.columnIndex="1" GridPane.rowIndex="2"/>
                         </GridPane>
 
@@ -72,20 +71,20 @@
                         </GridPane>
 
                         <Label text="Note"/>
-                        <TextArea fx:id="noteArea" prefHeight="60" wrapText="true"/>
+                        <TextArea fx:id="noteArea" prefRowCount="1" prefHeight="38" minHeight="38" wrapText="true"/>
 
                         <Button fx:id="saveLoanBtn" text="Save Loan" onAction="#handleSaveLoan" maxWidth="Infinity" styleClass="btn-primary"/>
                     </VBox>
 
                     <VBox fx:id="repaymentBox" spacing="8" visible="false" managed="false">
                         <Label text="Record Repayment" style="-fx-font-weight: bold; -fx-font-size: 13;"/>
-                        <Label fx:id="selectedLoanLabel" wrapText="true" style="-fx-text-fill: #4F6F66;"/>
+                        <Label fx:id="selectedLoanLabel" wrapText="true" styleClass="hint-text"/>
 
                         <Label text="Amount"/>
                         <TextField fx:id="repayAmountField" promptText="0.00"/>
 
                         <Label text="Account"/>
-                        <ComboBox fx:id="repayAccountComboBox" maxWidth="Infinity"/>
+                        <ComboBox fx:id="repayAccountComboBox" maxWidth="Infinity" promptText="Select Account"/>
 
                         <Label text="Date"/>
                         <DatePicker fx:id="repayDatePicker" maxWidth="Infinity"/>
@@ -96,23 +95,23 @@
                         <HBox spacing="8">
                             <Button text="Save Repayment" onAction="#handleSaveRepayment" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                             <Button text="Delete" onAction="#handleDeleteLoan" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                            <Button text="Cancel" onAction="#handleCancelSelection" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                            <Button text="Cancel" onAction="#handleCancelSelection" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                         </HBox>
                     </VBox>
 
                     <VBox fx:id="settledSelectionBox" spacing="8" visible="false" managed="false">
                         <Label text="Selected Loan" style="-fx-font-weight: bold; -fx-font-size: 13;"/>
-                        <Label fx:id="settledLoanLabel" wrapText="true" style="-fx-text-fill: #4F6F66;"/>
+                        <Label fx:id="settledLoanLabel" wrapText="true" styleClass="hint-text"/>
                         <HBox spacing="8">
                             <Button text="Delete" onAction="#handleDeleteLoan" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                            <Button text="Cancel" onAction="#handleCancelSelection" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                            <Button text="Cancel" onAction="#handleCancelSelection" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                         </HBox>
                     </VBox>
 
                 </VBox>
                 </ScrollPane>
 
-                <VBox spacing="10" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                <VBox spacing="5" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
 
                     <VBox spacing="4" VBox.vgrow="ALWAYS">
                         <Label text="Persons (click a row to see full history)" style="-fx-font-weight: bold; -fx-font-size: 13;"/>
@@ -126,6 +125,14 @@
                             </columns>
                             <placeholder><Label text="No loans yet. Add a person in the Loan Accounts tab, then save a loan on the left."/></placeholder>
                         </TableView>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Button fx:id="summaryPrevPageBtn" text="◀ Prev" styleClass="btn-secondary, btn-pager"/>
+                            <Label fx:id="summaryPageLabel" text="Page 1 of 1"/>
+                            <Button fx:id="summaryNextPageBtn" text="Next ▶" styleClass="btn-secondary, btn-pager"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="Rows per page:"/>
+                            <ComboBox fx:id="summaryPageSizeComboBox" prefWidth="80"/>
+                        </HBox>
                     </VBox>
 
                     <VBox spacing="4" VBox.vgrow="ALWAYS">
@@ -142,6 +149,14 @@
                             </columns>
                             <placeholder><Label text="Select a person above to see their loan history"/></placeholder>
                         </TableView>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Button fx:id="historyPrevPageBtn" text="◀ Prev" styleClass="btn-secondary, btn-pager"/>
+                            <Label fx:id="historyPageLabel" text="Page 1 of 1"/>
+                            <Button fx:id="historyNextPageBtn" text="Next ▶" styleClass="btn-secondary, btn-pager"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="Rows per page:"/>
+                            <ComboBox fx:id="historyPageSizeComboBox" prefWidth="80"/>
+                        </HBox>
                     </VBox>
 
                 </VBox>
@@ -150,14 +165,15 @@
         </Tab>
 
         <Tab text="Loan Accounts" closable="false">
-            <HBox spacing="15" styleClass="tab-content" style="-fx-padding: 10;">
+            <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="dash-scroll">
+            <HBox spacing="8" styleClass="tab-content" style="-fx-padding: 5;">
 
-                <VBox spacing="8" prefWidth="260">
+                <VBox spacing="8" prefWidth="260" styleClass="form-pane">
                     <Label text="Name"/>
                     <TextField fx:id="personNameField" promptText="e.g. Rahim"/>
 
                     <Label text="Note (optional)"/>
-                    <TextArea fx:id="personNoteArea" prefHeight="60" wrapText="true"/>
+                    <TextArea fx:id="personNoteArea" prefRowCount="1" prefHeight="38" minHeight="38" wrapText="true"/>
 
                     <Button fx:id="addPersonBtn" text="Add Loan Account" onAction="#handleAddPerson" maxWidth="Infinity" styleClass="btn-primary"/>
 
@@ -165,24 +181,35 @@
                         <HBox spacing="8">
                             <Button text="Update" onAction="#handleUpdatePerson" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-primary"/>
                             <Button text="Delete" onAction="#handleDeletePerson" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-accent"/>
-                            <Button text="Cancel" onAction="#handleCancelPersonSelection" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary"/>
+                            <Button text="Cancel" onAction="#handleCancelPersonSelection" HBox.hgrow="ALWAYS" maxWidth="Infinity" styleClass="btn-secondary, btn-reset"/>
                         </HBox>
 
                         <Label text="Merge into" style="-fx-font-weight: bold; -fx-font-size: 12;"/>
                         <ComboBox fx:id="mergeTargetComboBox" maxWidth="Infinity" promptText="Select a person"/>
-                        <Button text="Merge" onAction="#handleMergePerson" maxWidth="Infinity" styleClass="btn-accent"/>
+                        <Button text="Merge" onAction="#handleMergePerson" maxWidth="Infinity" styleClass="btn-secondary"/>
                     </VBox>
                 </VBox>
 
-                <TableView fx:id="personsTable" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <TableView fx:id="personsTable" VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="personListNameColumn" text="Name" prefWidth="180"/>
                         <TableColumn fx:id="personListNoteColumn" text="Note" minWidth="200"/>
                     </columns>
                     <placeholder><Label text="No loan accounts yet. Add one on the left."/></placeholder>
                 </TableView>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Button fx:id="personsPrevPageBtn" text="◀ Prev" styleClass="btn-secondary, btn-pager"/>
+                    <Label fx:id="personsPageLabel" text="Page 1 of 1"/>
+                    <Button fx:id="personsNextPageBtn" text="Next ▶" styleClass="btn-secondary, btn-pager"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Rows per page:"/>
+                    <ComboBox fx:id="personsPageSizeComboBox" prefWidth="80"/>
+                </HBox>
+                </VBox>
 
             </HBox>
+            </ScrollPane>
         </Tab>
 
     </TabPane>

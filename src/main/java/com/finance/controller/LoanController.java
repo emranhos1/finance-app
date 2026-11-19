@@ -84,8 +84,34 @@ public class LoanController {
     @FXML private VBox personEditButtons;
     @FXML private ComboBox<LoanPerson> mergeTargetComboBox;
     @FXML private TableView<LoanPerson> personsTable;
+
+    // paging of the three tables (rows are held in memory; see util/TablePager). The controls are optional.
+    @FXML private Button summaryPrevPageBtn;
+    @FXML private Button summaryNextPageBtn;
+    @FXML private Label summaryPageLabel;
+    @FXML private ComboBox<Integer> summaryPageSizeComboBox;
+    @FXML private Button historyPrevPageBtn;
+    @FXML private Button historyNextPageBtn;
+    @FXML private Label historyPageLabel;
+    @FXML private ComboBox<Integer> historyPageSizeComboBox;
+    @FXML private Button personsPrevPageBtn;
+    @FXML private Button personsNextPageBtn;
+    @FXML private Label personsPageLabel;
+    @FXML private ComboBox<Integer> personsPageSizeComboBox;
+    private com.finance.util.TablePager<PersonSummary> summaryPager;
+    private com.finance.util.TablePager<Loan> historyPager;
+    private com.finance.util.TablePager<LoanPerson> personsPager;
+    /** The person whose history is on screen, so the history page is kept on a reload but reset for another person. */
+    private Long historyShownFor;
     @FXML private TableColumn<LoanPerson, String> personListNameColumn;
     @FXML private TableColumn<LoanPerson, String> personListNoteColumn;
+
+    // optional display-only labels (Gold footer lines, Bento tile): a layout may leave any of them out
+    @FXML private Label loanNetRemainingLabel;
+    @FXML private Label loanPeopleCountLabel;
+
+    /** Remaining of each loan row, kept so the status chip (Open or Partial) does not ask the service twice. */
+    private final java.util.Map<Long, BigDecimal> remainingCache = new java.util.HashMap<>();
 
     private Loan selectedLoan = null;
     private LoanPerson selectedPersonForEdit = null;
@@ -99,6 +125,8 @@ public class LoanController {
         setupSummaryTable();
         setupHistoryTable();
         setupPersonsTable();
+        setupPagers();
+        setupSummaries();
 
         loadAccounts();
         loadTransferTypes();
@@ -110,6 +138,34 @@ public class LoanController {
         resetLoanForm();
         resetSelection();
         resetPersonSelection();
+    }
+
+    private void setupPagers() {
+        summaryPager = new com.finance.util.TablePager<>(personsSummaryTable, summaryPageSizeComboBox,
+                summaryPageLabel, summaryPrevPageBtn, summaryNextPageBtn);
+        historyPager = new com.finance.util.TablePager<>(loansTable, historyPageSizeComboBox,
+                historyPageLabel, historyPrevPageBtn, historyNextPageBtn);
+        personsPager = new com.finance.util.TablePager<>(personsTable, personsPageSizeComboBox,
+                personsPageLabel, personsPrevPageBtn, personsNextPageBtn);
+    }
+
+    /** Net remaining of all people and the number of people; worked out from the rows the tables hold, no new query. */
+    private void setupSummaries() {
+        com.finance.util.UiFormat.watchItems(personsSummaryTable, () -> {
+            BigDecimal net = BigDecimal.ZERO;
+            if (summaryPager != null) {
+                for (PersonSummary ps : summaryPager.getAll()) if (ps.getNetRemaining() != null) net = net.add(ps.getNetRemaining());
+            }
+            com.finance.util.UiFormat.setText(loanNetRemainingLabel, com.finance.util.UiFormat.money(net));
+        });
+        com.finance.util.UiFormat.watchItems(personsTable, () ->
+                com.finance.util.UiFormat.setText(loanPeopleCountLabel,
+                        String.valueOf(personsPager == null ? 0 : personsPager.getAll().size())));
+    }
+
+    private BigDecimal remainingOf(Loan loan) {
+        if (loan.getId() == null) return loanService.getRemaining(loan);
+        return remainingCache.computeIfAbsent(loan.getId(), id -> loanService.getRemaining(loan));
     }
 
     private void setupAccountComboBoxes() {
@@ -166,6 +222,10 @@ public class LoanController {
         summaryBorrowedColumn.setCellValueFactory(new PropertyValueFactory<>("totalBorrowed"));
         summaryNetColumn.setCellValueFactory(new PropertyValueFactory<>("netRemaining"));
         summaryOpenColumn.setCellValueFactory(new PropertyValueFactory<>("openCount"));
+        com.finance.util.UiFormat.amountColumn(summaryLentColumn, (r, v) -> com.finance.util.UiFormat.Tone.POS);
+        com.finance.util.UiFormat.amountColumn(summaryBorrowedColumn, (r, v) -> com.finance.util.UiFormat.Tone.NEG);
+        com.finance.util.UiFormat.amountColumn(summaryNetColumn, (r, v) -> com.finance.util.UiFormat.sign(v));
+        com.finance.util.UiFormat.countColumn(summaryOpenColumn);
 
         personsSummaryTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
             if (sel != null) {
@@ -183,8 +243,21 @@ public class LoanController {
         noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
 
         typeColumn.setCellValueFactory(cd -> new SimpleStringProperty(typeLabel(cd.getValue())));
-        statusColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getStatus().name()));
-        remainingColumn.setCellValueFactory(cd -> new SimpleObjectProperty<>(loanService.getRemaining(cd.getValue())));
+        statusColumn.setCellValueFactory(cd -> {
+            Loan loan = cd.getValue();
+            // an open loan that is partly repaid is shown as Partial in the themes whose board has that chip
+            boolean partial = loan.getStatus() == Loan.LoanStatus.OPEN
+                    && loan.getPrincipalAmount() != null
+                    && remainingOf(loan).compareTo(loan.getPrincipalAmount()) < 0;
+            return new SimpleStringProperty(partial ? "PARTIAL" : loan.getStatus().name());
+        });
+        remainingColumn.setCellValueFactory(cd -> new SimpleObjectProperty<>(remainingOf(cd.getValue())));
+        com.finance.util.UiFormat.chipColumn(typeColumn, v -> v, v -> "I Gave".equals(v) ? "chip-income" : "chip-expense");
+        com.finance.util.UiFormat.chipColumn(statusColumn, com.finance.util.UiFormat::loanStatusLabel, com.finance.util.UiFormat::loanStatusChipClass);
+        java.util.function.BiFunction<Loan, BigDecimal, com.finance.util.UiFormat.Tone> loanTone = (loan, v) -> loan == null ? com.finance.util.UiFormat.Tone.NEUTRAL
+                : loan.getType() == Loan.LoanType.LENT ? com.finance.util.UiFormat.Tone.POS : com.finance.util.UiFormat.Tone.NEG;
+        com.finance.util.UiFormat.amountColumn(principalColumn, loanTone);
+        com.finance.util.UiFormat.amountColumn(remainingColumn, loanTone);
 
         loansTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
             if (sel != null) populateSelection(sel);
@@ -250,7 +323,7 @@ public class LoanController {
     }
 
     private void loadAccounts() {
-        List<Account> accounts = accountService.getAccountsByUserId(sessionContext.getCurrentUserId());
+        List<Account> accounts = accountService.getOpenAccountsByUserId(sessionContext.getCurrentUserId());
         accountComboBox.setItems(FXCollections.observableArrayList(accounts));
         repayAccountComboBox.setItems(FXCollections.observableArrayList(accounts));
     }
@@ -258,19 +331,24 @@ public class LoanController {
     private void loadPersons() {
         List<LoanPerson> persons = loanService.getLoanPersonsByUserId(sessionContext.getCurrentUserId());
         personComboBox.setItems(FXCollections.observableArrayList(persons));
-        personsTable.setItems(FXCollections.observableArrayList(persons));
+        personsPager.setAll(persons);
     }
 
     private void loadPersonSummaries() {
         List<PersonSummary> summaries = loanService.getPersonSummaries(sessionContext.getCurrentUserId());
-        personsSummaryTable.setItems(FXCollections.observableArrayList(summaries));
-        loansTable.getItems().clear();
+        remainingCache.clear();
+        summaryPager.setAll(summaries);
+        historyPager.setAll(new ArrayList<>());
+        historyShownFor = null;
         historyTitleLabel.setText("History");
     }
 
     private void loadHistoryForPerson(Long loanPersonId) {
         List<Loan> loans = loanService.getLoansByPerson(sessionContext.getCurrentUserId(), loanPersonId);
-        loansTable.setItems(FXCollections.observableArrayList(loans));
+        remainingCache.clear();
+        if (!java.util.Objects.equals(historyShownFor, loanPersonId)) historyPager.reset();
+        historyShownFor = loanPersonId;
+        historyPager.setAll(loans);
     }
 
     @FXML
@@ -320,7 +398,7 @@ public class LoanController {
 
             ButtonType settleType = new ButtonType("Settle Debt First", ButtonBar.ButtonData.OK_DONE);
             ButtonType newLoanType = new ButtonType("Record as New Loan", ButtonBar.ButtonData.OTHER);
-            Dialog<ButtonType> choiceDialog = new Dialog<>();
+            Dialog<ButtonType> choiceDialog = new com.finance.util.AppDialog<>();
             choiceDialog.setTitle("Existing Balance Found");
             choiceDialog.getDialogPane().getButtonTypes().addAll(settleType, newLoanType, ButtonType.CANCEL);
             Label choiceLabel = new Label(debtDescription + "\n\n" + settleExplanation);
@@ -535,14 +613,14 @@ public class LoanController {
     }
 
     private boolean confirm(String msg) {
-        Alert a = new Alert(Alert.AlertType.CONFIRMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.CONFIRMATION);
         a.setTitle("Confirm"); a.setHeaderText(null);
         setWrappedContent(a, msg);
         Optional<ButtonType> r = a.showAndWait(); return r.isPresent() && r.get() == ButtonType.OK;
     }
 
     private void showAlert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        Alert a = new com.finance.util.AppAlert(Alert.AlertType.INFORMATION);
         a.setTitle(title); a.setHeaderText(null);
         setWrappedContent(a, msg);
         a.showAndWait();

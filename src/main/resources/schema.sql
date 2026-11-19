@@ -105,6 +105,19 @@ PREPARE stmt FROM @alter_stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- accounts with closed = 1 have matured: balance 0, no edits, no transactions
+SET @col_exists = (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts' AND COLUMN_NAME = 'closed'
+);
+SET @alter_stmt = IF(@col_exists = 0,
+    'ALTER TABLE accounts ADD COLUMN closed BOOLEAN NOT NULL DEFAULT FALSE',
+    'SELECT 1'
+);
+PREPARE stmt FROM @alter_stmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS categories (
                                           id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                           user_id BIGINT NOT NULL,

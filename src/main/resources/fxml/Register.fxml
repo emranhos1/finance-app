@@ -10,9 +10,7 @@
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.finance.controller.RegisterController"
-      alignment="TOP_CENTER" spacing="10" style="-fx-padding: 20;">
-
-    <Label text="Create New Account" style="-fx-font-size: 16; -fx-font-weight: bold;" styleClass="app-title"/>
+      alignment="TOP_LEFT" spacing="10" styleClass="auth-form" style="-fx-padding: 20;">
 
     <Label text="Username"/>
     <TextField fx:id="usernameField" promptText="Min 3 characters"/>
@@ -30,7 +28,7 @@
     <TextField fx:id="securityAnswerField" promptText="Your answer"/>
 
     <HBox spacing="10" alignment="CENTER">
-        <Button text="Register" style="-fx-padding: 8;" styleClass="btn-primary" onAction="#handleRegister"/>
-        <Button text="Cancel" style="-fx-padding: 8;" styleClass="btn-secondary" onAction="#handleCancel"/>
+        <Button text="Register" style="-fx-padding: 8;" styleClass="btn-primary" onAction="#handleRegister" prefWidth="150" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button text="Cancel" style="-fx-padding: 8;" styleClass="btn-secondary, btn-reset" onAction="#handleCancel" prefWidth="150" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
     </HBox>
 </VBox>
