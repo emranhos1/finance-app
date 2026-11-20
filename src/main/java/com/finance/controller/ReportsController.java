@@ -334,10 +334,25 @@ public class ReportsController {
                     ? transactionService.getIncomeFiltered(userId, accountIds, categoryId, monthStart, monthEnd) : BigDecimal.ZERO;
             BigDecimal expense = withExpense
                     ? transactionService.getExpenseFiltered(userId, accountIds, categoryId, monthStart, monthEnd) : BigDecimal.ZERO;
-            incomeSeries.getData().add(new XYChart.Data<>(label, income));
-            expenseSeries.getData().add(new XYChart.Data<>(label, expense));
+            XYChart.Data<String, Number> incomeData = new XYChart.Data<>(label, income);
+            XYChart.Data<String, Number> expenseData = new XYChart.Data<>(label, expense);
+            String tip = String.format("%s%nIncome: ৳ %,.2f%nExpense: ৳ %,.2f", label, income, expense);
+            attachTooltip(incomeData, tip);
+            attachTooltip(expenseData, tip);
+            incomeSeries.getData().add(incomeData);
+            expenseSeries.getData().add(expenseData);
         }
         trendChart.getData().setAll(incomeSeries, expenseSeries);
+    }
+
+    private void attachTooltip(XYChart.Data<String, Number> data, String text) {
+        data.nodeProperty().addListener((obs, oldNode, node) -> {
+            if (node != null) {
+                Tooltip tooltip = new Tooltip(text);
+                tooltip.setShowDelay(javafx.util.Duration.millis(100));
+                Tooltip.install(node, tooltip);
+            }
+        });
     }
 
     private Page<AccountLog> searchLogs(List<Long> accountIds, Pageable pageable) {
