@@ -72,6 +72,8 @@
             <Button fx:id="logoutBtn" text="Logout" styleClass="sidebar-btn" maxWidth="Infinity">
                 <graphic><Group><SVGPath styleClass="sidebar-icon" scaleX="0.75" scaleY="0.75" content="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9"/></Group></graphic>
             </Button>
+            <!-- current version, always at the very bottom under Logout; same width as the buttons, text starts at the buttons' icon edge -->
+            <Label fx:id="versionLabel" styleClass="sidebar-version" maxWidth="Infinity" alignment="CENTER_LEFT"/>
         </VBox>
         </ScrollPane>
     </left>
