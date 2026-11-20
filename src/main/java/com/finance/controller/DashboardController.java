@@ -86,6 +86,18 @@ public class DashboardController {
     @FXML private Button updateBtn;
     @FXML private javafx.scene.control.ProgressBar updateProgressBar;
     private javafx.animation.Timeline updateBlink;
+    /** Current app version under Logout; hidden only while the sidebar is collapsed. */
+    @FXML private Label versionLabel;
+
+    private void refreshVersionLabel() {
+        if (versionLabel == null) return;
+        String v = updateService.getCurrentVersion();
+        boolean known = v != null && !v.isBlank() && !v.contains("@");
+        versionLabel.setText(known ? "Version " + v : "");
+        boolean show = known && !sidebarCollapsed;
+        versionLabel.setVisible(show);
+        versionLabel.setManaged(show);
+    }
 
     private void showUpdateProgress(boolean show) {
         if (updateProgressBar == null) return;
@@ -178,6 +190,7 @@ public class DashboardController {
         for (Node n : new Node[]{sidebarLogoTile, sidebarLogoText, sidebarSpacer}) {
             if (n != null) { n.setVisible(!sidebarCollapsed); n.setManaged(!sidebarCollapsed); }
         }
+        refreshVersionLabel();
         for (Node n : sidebarVBox.getChildren()) {
             if (n instanceof Button && n.getStyleClass().contains("sidebar-btn")) {
                 Button b = (Button) n;
@@ -425,7 +438,7 @@ public class DashboardController {
                 return null;
             }
         };
-        connectTask.setOnSucceeded(e -> { countdown.stop(); showBackingUp(dialog, content); });
+        connectTask.setOnSucceeded(e -> { countdown.stop(); showConnected(dialog, content); });
         connectTask.setOnFailed(e -> {
             countdown.stop();
             Throwable ex = connectTask.getException();
@@ -445,6 +458,22 @@ public class DashboardController {
         Thread thread = new Thread(connectTask, "logout-drive-connect");
         thread.setDaemon(true);
         thread.start();
+    }
+
+    /** After a fresh connect: show which Google account is linked; the backup starts only when the user clicks. */
+    private void showConnected(Dialog<Void> dialog, VBox content) {
+        Label label = new Label("Connected to Google Drive as:\n" + googleDriveService.getConnectedEmail()
+                + "\n\nYour backup will be uploaded to this account.");
+        label.setWrapText(true);
+
+        Button backupBtn = new Button("Backup Now");
+        backupBtn.getStyleClass().add("btn-primary");
+        Button skipBtn = new Button("Skip & Logout");
+        skipBtn.getStyleClass().add("btn-secondary");
+        backupBtn.setOnAction(e -> showBackingUp(dialog, content));
+        skipBtn.setOnAction(e -> closeDialogThenLogout(dialog));
+
+        showStep(dialog, content, label, new HBox(10, backupBtn, skipBtn, cancelButton(dialog)));
     }
 
     private void showBackingUp(Dialog<Void> dialog, VBox content) {
@@ -536,8 +565,24 @@ public class DashboardController {
         connectBtn.setOnAction(e -> showConnecting(dialog, content));
         skipBtn.setOnAction(e -> closeDialogThenLogout(dialog));
 
-        showStep(dialog, content, reasonScroll, suggestionLabel,
-                new HBox(10, retryBtn, connectBtn), new HBox(10, skipBtn, cancelButton(dialog)));
+        // 2x2 grid, equal-width columns, every button fills its cell so sizes and edges line up
+        Button cancelBtn = cancelButton(dialog);
+        GridPane buttons = new GridPane();
+        buttons.setHgap(10);
+        buttons.setVgap(10);
+        javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+        col.setPercentWidth(50);
+        buttons.getColumnConstraints().addAll(col, col);
+        int row = 0, colIdx = 0;
+        for (Button b : new Button[]{retryBtn, connectBtn, skipBtn, cancelBtn}) {
+            b.setMaxWidth(Double.MAX_VALUE);
+            b.setMinHeight(38);
+            GridPane.setHgrow(b, javafx.scene.layout.Priority.ALWAYS);
+            buttons.add(b, colIdx, row);
+            if (++colIdx == 2) { colIdx = 0; row++; }
+        }
+
+        showStep(dialog, content, reasonScroll, suggestionLabel, buttons);
 
         // fit the scroll box to the wrapped message, max 160px
         Insets in = content.getInsets();
