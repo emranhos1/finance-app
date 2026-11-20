@@ -412,7 +412,24 @@ public class DashboardController {
         connectBtn.setOnAction(e -> showConnecting(dialog, content));
         skipBtn.setOnAction(e -> closeDialogThenLogout(dialog));
 
-        showStep(dialog, content, label, new HBox(10, connectBtn, skipBtn), cancelButton(dialog));
+        // same grid as the "Backup failed" dialog: equal-width buttons, Cancel full width underneath
+        Button cancelBtn = cancelButton(dialog);
+        GridPane buttons = new GridPane();
+        buttons.setHgap(10);
+        buttons.setVgap(10);
+        javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+        col.setPercentWidth(50);
+        buttons.getColumnConstraints().addAll(col, col);
+        for (Button b : new Button[]{connectBtn, skipBtn, cancelBtn}) {
+            b.setMaxWidth(Double.MAX_VALUE);
+            b.setMinHeight(38);
+            GridPane.setHgrow(b, javafx.scene.layout.Priority.ALWAYS);
+        }
+        buttons.add(connectBtn, 0, 0);
+        buttons.add(skipBtn, 1, 0);
+        buttons.add(cancelBtn, 0, 1, 2, 1);
+
+        showStep(dialog, content, label, buttons);
     }
 
     private void showConnecting(Dialog<Void> dialog, VBox content) {
