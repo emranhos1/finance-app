@@ -84,7 +84,7 @@
 /* "Update to x.y.z" item in the Dashboard sidebar: gold text and icon (it blinks from the controller) */
 .sidebar-btn.sidebar-update-btn { -fx-text-fill: #F2C94C; -fx-font-weight: bold; }
 .sidebar-update-btn .sidebar-icon { -fx-stroke: #F2C94C; }
-.sidebar-version { -fx-text-fill: #bcd9cf; -fx-font-size: 12; -fx-opacity: 0.8; -fx-padding: 6 0 10 10; }
+.sidebar-version { -fx-text-fill: #bcd9cf; -fx-font-size: 12; -fx-opacity: 0.8; -fx-padding: 6 0 4 10; }
 /* thin gold bar under the update item while it downloads */
 .sidebar-update-progress { -fx-pref-height: 6; -fx-min-height: 6; -fx-max-height: 6; }
 .progress-bar.sidebar-update-progress > .track { -fx-background-color: rgba(255, 255, 255, 0.18); -fx-background-insets: 0; -fx-background-radius: 3; }

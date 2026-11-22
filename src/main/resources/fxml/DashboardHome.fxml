@@ -61,7 +61,7 @@
                 <Label text="Expense % of Income" styleClass="dash-ring-sub" wrapText="true"
                        alignment="CENTER" textAlignment="CENTER" maxWidth="140"/>
                 <HBox spacing="6" alignment="CENTER">
-                    <StackPane fx:id="expenseRingStack" prefWidth="46" prefHeight="46" maxWidth="46" maxHeight="46">
+                    <StackPane fx:id="expenseRingStack" prefWidth="64" prefHeight="64" maxWidth="64" maxHeight="64">
                         <Label fx:id="expenseRingLabel" text="0%" styleClass="dash-ring-label"/>
                     </StackPane>
                     <Label text="MONTHLY" styleClass="dash-section-hint"/>

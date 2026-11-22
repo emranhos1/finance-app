@@ -362,6 +362,22 @@
 .seg-tabs > .tab-header-area > .headers-region > .tab { -fx-background-color: #ffffff; -fx-background-radius: 9; -fx-padding: 0 16 0 16; }
 .seg-tabs > .tab-header-area > .headers-region > .tab:selected { -fx-background-color: #216e59; }
 
+/* ===== "What's new" dialog: English / বাংলা look like the tabs (pill buttons); OK fills with green on hover ===== */
+.toggle-button.notes-lang {
+    -fx-background-color: #ffffff; -fx-background-insets: 0; -fx-background-radius: 9;
+    -fx-border-color: #d7e4de; -fx-border-radius: 9; -fx-border-width: 1;
+    -fx-min-height: 30; -fx-padding: 0 14 0 14; -fx-cursor: hand;
+    -fx-text-fill: #566a62; -fx-font-weight: bold; -fx-font-size: 12px;
+}
+.toggle-button.notes-lang:hover { -fx-background-color: #e8f3ef; }
+.toggle-button.notes-lang:selected { -fx-background-color: #216e59; -fx-border-color: #216e59; -fx-text-fill: #ffffff; }
+.toggle-button.notes-lang:focused { -fx-background-insets: 0; }
+.dialog-pane.notes-dialog > .button-bar .button:default {
+    -fx-background-color: #ffffff; -fx-text-fill: #216e59; -fx-border-color: #216e59;
+}
+.dialog-pane.notes-dialog > .button-bar .button:default:hover { -fx-background-color: #216e59; -fx-text-fill: #ffffff; }
+.dialog-pane.notes-dialog > .button-bar .button:default:armed { -fx-background-color: #14463a; -fx-text-fill: #ffffff; }
+
 /* ===== Tables: white card, uppercase-like small header, soft row lines ===== */
 .table-view {
     -fx-background-color: #ffffff;
@@ -441,9 +457,9 @@
 .dash-tx-title { -fx-font-size: 13px; }
 .dash-tx-amount-pos, .dash-tx-amount-neg, .dash-tx-amount-neutral { -fx-font-size: 13px; }
 .dash-tx-amount-neutral { -fx-text-fill: #566a62; }
-.dash-ring-track { -fx-stroke: #e1ebe7; -fx-stroke-width: 7; }
-.dash-ring-progress { -fx-stroke: #216e59; -fx-stroke-width: 7; }
-.dash-ring-label { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #14463a; }
+.dash-ring-track { -fx-stroke: #e1ebe7; -fx-stroke-width: 5; }
+.dash-ring-progress { -fx-stroke: #216e59; -fx-stroke-width: 5; }
+.dash-ring-label { -fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #14463a; }
 .dash-table-head { -fx-font-size: 11px; -fx-text-fill: #566a62; }
 .dash-monthly-row-total, .dash-monthly-row-avg { -fx-background-radius: 8; -fx-padding: 5 6 5 6; }
 .dash-monthly-row-total .label, .dash-monthly-row-avg .label { -fx-font-weight: bold; }
