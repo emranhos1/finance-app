@@ -30,6 +30,23 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                             @Param("accountId") Long accountId, @Param("filterType") Transaction.TransactionType filterType,
                                             Pageable pageable);
 
+    /** One page of the distinct dates (newest first) that have a transaction matching the same filters as findTransactionsPage. */
+    @Query(value = "SELECT DISTINCT t.date FROM Transaction t WHERE t.userId = :userId AND t.type IN :types " +
+           "AND (:categoryId IS NULL OR t.categoryId = :categoryId) " +
+           "AND (:startDate IS NULL OR t.date >= :startDate) AND (:endDate IS NULL OR t.date <= :endDate) " +
+           "AND (:accountId IS NULL OR t.fromAccountId = :accountId OR t.toAccountId = :accountId) " +
+           "AND (:filterType IS NULL OR t.type = :filterType) " +
+           "ORDER BY t.date DESC",
+           countQuery = "SELECT COUNT(DISTINCT t.date) FROM Transaction t WHERE t.userId = :userId AND t.type IN :types " +
+           "AND (:categoryId IS NULL OR t.categoryId = :categoryId) " +
+           "AND (:startDate IS NULL OR t.date >= :startDate) AND (:endDate IS NULL OR t.date <= :endDate) " +
+           "AND (:accountId IS NULL OR t.fromAccountId = :accountId OR t.toAccountId = :accountId) " +
+           "AND (:filterType IS NULL OR t.type = :filterType)")
+    Page<LocalDate> findTransactionDatesPage(@Param("userId") Long userId, @Param("types") List<Transaction.TransactionType> types,
+                                              @Param("categoryId") Long categoryId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate,
+                                              @Param("accountId") Long accountId, @Param("filterType") Transaction.TransactionType filterType,
+                                              Pageable pageable);
+
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.type = :type " +
            "AND (:transferTypeId IS NULL OR t.transferTypeId = :transferTypeId) " +
            "AND (:startDate IS NULL OR t.date >= :startDate) AND (:endDate IS NULL OR t.date <= :endDate) " +

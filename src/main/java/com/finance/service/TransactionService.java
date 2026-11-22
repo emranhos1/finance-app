@@ -343,6 +343,13 @@ public class TransactionService {
         return transactionRepository.findTransactionsPage(userId, types, categoryId, startDate, endDate, accountId, filterType, pageable);
     }
 
+    /** One page of the distinct dates (newest first) that have a matching transaction; the day-wise Transaction table pages by day. */
+    public Page<LocalDate> getTransactionDatesPage(Long userId, List<Transaction.TransactionType> types,
+                                                    Long categoryId, LocalDate startDate, LocalDate endDate, Long accountId,
+                                                    Transaction.TransactionType filterType, Pageable pageable) {
+        return transactionRepository.findTransactionDatesPage(userId, types, categoryId, startDate, endDate, accountId, filterType, pageable);
+    }
+
     public Page<Transaction> getTransfersPage(Long userId, Long transferTypeId, LocalDate startDate, LocalDate endDate, Long accountId, Pageable pageable) {
         return transactionRepository.findTransfersPage(userId, Transaction.TransactionType.TRANSFER, transferTypeId, startDate, endDate, accountId, pageable);
     }
