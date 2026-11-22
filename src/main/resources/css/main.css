@@ -1014,3 +1014,18 @@
 }
 .tab-pane.line-tabs > .tab-header-area > .headers-region > .tab .tab-label { -fx-text-fill: #566a62; -fx-font-size: 13px; }
 .tab-pane.line-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label { -fx-text-fill: #14463a; }
+
+/* Transaction table: one shaded header row per day (date, Income, Expense, Net) */
+.table-view .table-row-cell.tx-day-row,
+.table-view .table-row-cell.tx-day-row:odd,
+.table-view .table-row-cell.tx-day-row:even,
+.table-view .table-row-cell.tx-day-row:hover,
+.table-view .table-row-cell.tx-day-row:selected {
+    -fx-background-color: #d3e8df;
+    -fx-border-color: #b5d3c6;
+    -fx-border-width: 1 0 1 0;
+}
+.table-view .table-row-cell.tx-day-row { -fx-cursor: hand; }
+.table-view .table-row-cell.tx-day-row .table-cell { -fx-font-weight: bold; -fx-text-fill: #14463a; }
+.table-view .table-row-cell.tx-day-row .table-cell.amount-pos { -fx-text-fill: #1b6e3e; }
+.table-view .table-row-cell.tx-day-row .table-cell.amount-neg { -fx-text-fill: #b03a2e; }

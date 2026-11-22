@@ -73,12 +73,13 @@
 
                     <TableView fx:id="transactionsTable" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="dateColumn"     text="Date"     prefWidth="95"/>
-                            <TableColumn fx:id="typeColumn"     text="Type"     prefWidth="80"/>
-                            <TableColumn fx:id="accountColumn"  text="Account"  prefWidth="140"/>
-                            <TableColumn fx:id="categoryColumn" text="Category" prefWidth="120"/>
-                            <TableColumn fx:id="amountColumn"   text="Amount"   prefWidth="90"/>
-                            <TableColumn fx:id="noteColumn"     text="Note"     minWidth="150"/>
+                            <!-- widths are set in TransactionController.fitColumns (share of the table width) -->
+                            <TableColumn fx:id="dateColumn"     text="Date"/>
+                            <TableColumn fx:id="accountColumn"  text="Account"/>
+                            <TableColumn fx:id="categoryColumn" text="Category"/>
+                            <TableColumn fx:id="incomeColumn"   text="Income"/>
+                            <TableColumn fx:id="expenseColumn"  text="Expense"/>
+                            <TableColumn fx:id="noteColumn"     text="Note"/>
                         </columns>
                         <placeholder><Label text="No transactions yet"/></placeholder>
                     </TableView>
@@ -88,7 +89,7 @@
                         <Label fx:id="txPageLabel" text="Page 1 of 1"/>
                         <Button fx:id="txNextPageBtn" text="Next ▶" onAction="#handleTxNextPage" styleClass="btn-secondary, btn-pager"/>
                         <Region HBox.hgrow="ALWAYS"/>
-                        <Label text="Rows per page:"/>
+                        <Label text="Days per page:"/>
                         <ComboBox fx:id="txPageSizeComboBox" prefWidth="80"/>
                     </HBox>
                 </VBox>

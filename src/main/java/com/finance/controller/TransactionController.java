@@ -63,11 +63,11 @@ public class TransactionController {
     @FXML private HBox txEditButtons;
 
     @FXML private TableView<Transaction> transactionsTable;
-    @FXML private TableColumn<Transaction, LocalDate> dateColumn;
-    @FXML private TableColumn<Transaction, String> typeColumn;
+    @FXML private TableColumn<Transaction, String> dateColumn;
     @FXML private TableColumn<Transaction, String> accountColumn;
     @FXML private TableColumn<Transaction, String> categoryColumn;
-    @FXML private TableColumn<Transaction, BigDecimal> amountColumn;
+    @FXML private TableColumn<Transaction, BigDecimal> incomeColumn;
+    @FXML private TableColumn<Transaction, BigDecimal> expenseColumn;
     @FXML private TableColumn<Transaction, String> noteColumn;
     @FXML private ComboBox<Category> categoryFilterComboBox;
     @FXML private DateRangeField dateFilter;
@@ -83,6 +83,23 @@ public class TransactionController {
     private static final Account ALL_ACCOUNTS_OPTION = Account.builder().id(null).name("All Accounts").build();
     private static final List<Integer> PAGE_SIZE_OPTIONS = Arrays.asList(5, 10, 20, 50, 100);
     private static final DateTimeFormatter IMPORT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    /**
+     * Day header row of the Transaction table (never saved): income and expense of the day. Transaction has value equals,
+     * so two headers with the same date would count as "the same row" and JavaFX would skip redrawing it; a header is
+     * equal only to itself.
+     */
+    private static final class DayHeader extends Transaction {
+        BigDecimal[] sums = { BigDecimal.ZERO, BigDecimal.ZERO };   // income, expense
+        @Override public boolean equals(Object o) { return this == o; }
+        @Override public int hashCode() { return System.identityHashCode(this); }
+    }
+    private static final DateTimeFormatter DAY_NAME_FORMAT = DateTimeFormatter.ofPattern("EEE", java.util.Locale.ENGLISH);
+
+    private boolean isDayHeader(Transaction tx) { return tx instanceof DayHeader; }
+
+    /** Days the owner opened. Every day is collapsed (only its header shows) until it is opened; kept while the Transaction tab is open. */
+    private final java.util.Set<LocalDate> expandedDays = new java.util.HashSet<>();
 
     private int txCurrentPage = 0;
     private int txTotalPages = 1;
@@ -116,7 +133,7 @@ public class TransactionController {
 
         setupCategoryFilterComboBox();
         txPageSizeComboBox.setItems(FXCollections.observableArrayList(PAGE_SIZE_OPTIONS));
-        txPageSizeComboBox.setValue(20);
+        txPageSizeComboBox.setValue(10);   // days per page
         txPageSizeComboBox.setOnAction(e -> loadTransactionsPage(0));
 
         catTypeComboBox.setItems(FXCollections.observableArrayList(Category.CategoryType.values()));
@@ -200,19 +217,65 @@ public class TransactionController {
         });
     }
 
+    /** Column title right-aligned over right-aligned numbers (the theme aligns every column title to the left). */
+    private void rightAlignHeader(TableColumn<?, ?> column, String title) {
+        Label label = new Label(title);
+        label.setStyle("-fx-alignment: CENTER-RIGHT;");   // inline style beats the theme rule
+        label.prefWidthProperty().bind(column.widthProperty().subtract(18));
+        column.setText(null);
+        column.setGraphic(label);
+    }
+
+    /**
+     * Each column takes a fixed share of the table width (minus room for the scroll bar), so the columns always fill
+     * the table, never need a horizontal scroll bar and keep the same proportions at any window size.
+     * Shares: Date 22, Account 19, Category 16, Income 13, Expense 13, Note 17 percent. Resizing by hand is off.
+     */
+    private void fitColumns() {
+        TableColumn<?, ?>[] columns = { dateColumn, accountColumn, categoryColumn, incomeColumn, expenseColumn, noteColumn };
+        double[] shares = { 0.22, 0.19, 0.16, 0.13, 0.13, 0.17 };
+        for (int i = 0; i < columns.length; i++) {
+            columns[i].setResizable(false);
+            columns[i].setMinWidth(40);
+            columns[i].prefWidthProperty().bind(transactionsTable.widthProperty().subtract(24).multiply(shares[i]));
+        }
+    }
+
     private void setupTransactionTable() {
-        dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
-        amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
+        fitColumns();
+        // a day header shows an arrow before the date: down = open, right = collapsed. The cell value is text, so it
+        // changes when the day is opened or closed (a LocalDate would stay equal and the cell would not redraw).
+        dateColumn.setCellValueFactory(cd -> {
+            Transaction tx = cd.getValue();
+            if (tx == null || tx.getDate() == null) return new SimpleStringProperty("");
+            return new SimpleStringProperty(isDayHeader(tx)
+                    ? (expandedDays.contains(tx.getDate()) ? "▼ " : "▶ ") + tx.getDate()
+                    + " (" + tx.getDate().format(DAY_NAME_FORMAT) + ")" : tx.getDate().toString());
+        });
         noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
 
-        typeColumn.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().getType().name().toUpperCase()));
-        com.finance.util.UiFormat.chipColumn(typeColumn, v -> v, com.finance.util.UiFormat::typeChipClass);
-        com.finance.util.UiFormat.amountColumn(amountColumn, (tx, v) -> tx == null ? com.finance.util.UiFormat.Tone.NEUTRAL
-                : tx.getType() == Transaction.TransactionType.INCOME ? com.finance.util.UiFormat.Tone.POS
-                : tx.getType() == Transaction.TransactionType.EXPENSE ? com.finance.util.UiFormat.Tone.NEG : com.finance.util.UiFormat.Tone.NEUTRAL);
+        // Income and Expense columns replace Type + Amount: a transaction's amount sits in the column of its type,
+        // a day header shows the day's totals in the same two columns (its Net is in the Note column)
+        incomeColumn.setCellValueFactory(cd -> {
+            Transaction tx = cd.getValue();
+            if (isDayHeader(tx)) return new javafx.beans.property.SimpleObjectProperty<>(((DayHeader) tx).sums[0]);
+            return new javafx.beans.property.SimpleObjectProperty<>(
+                    tx.getType() == Transaction.TransactionType.INCOME ? tx.getAmount() : null);
+        });
+        expenseColumn.setCellValueFactory(cd -> {
+            Transaction tx = cd.getValue();
+            if (isDayHeader(tx)) return new javafx.beans.property.SimpleObjectProperty<>(((DayHeader) tx).sums[1]);
+            return new javafx.beans.property.SimpleObjectProperty<>(
+                    tx.getType() == Transaction.TransactionType.EXPENSE ? tx.getAmount() : null);
+        });
+        rightAlignHeader(incomeColumn, "Income");
+        rightAlignHeader(expenseColumn, "Expense");
+        com.finance.util.UiFormat.amountColumn(incomeColumn, (tx, v) -> com.finance.util.UiFormat.Tone.POS);
+        com.finance.util.UiFormat.amountColumn(expenseColumn, (tx, v) -> com.finance.util.UiFormat.Tone.NEG);
 
         accountColumn.setCellValueFactory(cd -> {
             Transaction tx = cd.getValue();
+            if (isDayHeader(tx)) return new SimpleStringProperty("");
             Long accId = tx.getType() == Transaction.TransactionType.INCOME ? tx.getToAccountId() : tx.getFromAccountId();
             if (accId == null) return new SimpleStringProperty("-");
             try { return new SimpleStringProperty(accountService.getAccountById(accId).getName()); }
@@ -221,6 +284,7 @@ public class TransactionController {
 
         categoryColumn.setCellValueFactory(cd -> {
             Transaction tx = cd.getValue();
+            if (isDayHeader(tx)) return new SimpleStringProperty("");
             if (tx.getType() == Transaction.TransactionType.TRANSFER) {
                 Long typeId = tx.getTransferTypeId();
                 if (typeId == null) return new SimpleStringProperty("-");
@@ -233,8 +297,33 @@ public class TransactionController {
             catch (Exception e) { return new SimpleStringProperty("-"); }
         });
 
+        transactionsTable.setRowFactory(tv -> {
+            TableRow<Transaction> row = new TableRow<Transaction>() {
+                @Override
+                protected void updateItem(Transaction item, boolean empty) {
+                    super.updateItem(item, empty);
+                    getStyleClass().remove("tx-day-row");
+                    if (!empty && isDayHeader(item)) getStyleClass().add("tx-day-row");
+                }
+            };
+            // press on a day header: hide or show that day's transactions. The press is consumed so the row is never
+            // selected (selecting inside the click and reloading the table at once broke JavaFX's selection model).
+            row.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+                Transaction item = row.getItem();
+                if (row.isEmpty() || !isDayHeader(item)) return;
+                e.consume();
+                if (e.getButton() != javafx.scene.input.MouseButton.PRIMARY) return;
+                LocalDate day = item.getDate();
+                if (!expandedDays.remove(day)) expandedDays.add(day);
+                javafx.application.Platform.runLater(() -> loadTransactionsPage(txCurrentPage));
+            });
+            return row;
+        });
         transactionsTable.getSelectionModel().selectedItemProperty().addListener((obs, o, sel) -> {
-            if (sel != null) populateFormForEdit(sel);
+            if (sel == null) return;
+            // a header can only be reached with the keyboard now; clear it after this change has finished
+            if (isDayHeader(sel)) { javafx.application.Platform.runLater(() -> transactionsTable.getSelectionModel().clearSelection()); return; }
+            populateFormForEdit(sel);
         });
     }
 
@@ -288,17 +377,43 @@ public class TransactionController {
         String selectedTypeStr = typeFilterComboBox.getValue();
         Transaction.TransactionType filterType = (selectedTypeStr == null || "All Types".equals(selectedTypeStr))
                 ? null : Transaction.TransactionType.valueOf(selectedTypeStr);
-        int pageSize = txPageSizeComboBox.getValue() != null ? txPageSizeComboBox.getValue() : 20;
+        int pageSize = txPageSizeComboBox.getValue() != null ? txPageSizeComboBox.getValue() : 10;   // days per page
+        Long userId = sessionContext.getCurrentUserId();
+        List<Transaction.TransactionType> types = Arrays.asList(Transaction.TransactionType.INCOME, Transaction.TransactionType.EXPENSE);
 
-        Pageable pageable = PageRequest.of(page, pageSize);
-        Page<Transaction> result = transactionService.getTransactionsPage(sessionContext.getCurrentUserId(),
-                Arrays.asList(Transaction.TransactionType.INCOME, Transaction.TransactionType.EXPENSE),
-                categoryId, startDate, endDate, accountId, filterType, pageable);
+        // the page is a set of days, so a day (and its sum) is never split over two pages
+        Page<LocalDate> days = transactionService.getTransactionDatesPage(userId, types,
+                categoryId, startDate, endDate, accountId, filterType, PageRequest.of(page, pageSize));
+        List<Transaction> rows = new ArrayList<>();
+        if (!days.getContent().isEmpty()) {
+            LocalDate newest = days.getContent().get(0);
+            LocalDate oldest = days.getContent().get(days.getContent().size() - 1);
+            // same filters, narrowed to the dates of this page (every date between them that has a match is on this page)
+            List<Transaction> pageRows = transactionService.getTransactionsPage(userId, types,
+                    categoryId, oldest, newest, accountId, filterType, Pageable.unpaged()).getContent();
+            LocalDate currentDay = null;
+            DayHeader header = null;
+            BigDecimal[] sums = null;
+            for (Transaction t : pageRows) {
+                if (!t.getDate().equals(currentDay)) {
+                    currentDay = t.getDate();
+                    header = new DayHeader();
+                    header.setDate(currentDay);
+                    sums = header.sums;
+                    rows.add(header);
+                }
+                if (t.getAmount() != null) {
+                    if (t.getType() == Transaction.TransactionType.INCOME) sums[0] = sums[0].add(t.getAmount());
+                    else if (t.getType() == Transaction.TransactionType.EXPENSE) sums[1] = sums[1].add(t.getAmount());
+                }
+                if (expandedDays.contains(currentDay)) rows.add(t);
+            }
+        }
 
-        txCurrentPage = result.getNumber();
-        txTotalPages = Math.max(result.getTotalPages(), 1);
-        transactionsTable.setItems(FXCollections.observableArrayList(result.getContent()));
-        txPageLabel.setText("Page " + (txCurrentPage + 1) + " of " + txTotalPages + " (" + result.getTotalElements() + " total)");
+        txCurrentPage = days.getNumber();
+        txTotalPages = Math.max(days.getTotalPages(), 1);
+        transactionsTable.setItems(FXCollections.observableArrayList(rows));
+        txPageLabel.setText("Page " + (txCurrentPage + 1) + " of " + txTotalPages + " (" + days.getTotalElements() + " days)");
         txPrevPageBtn.setDisable(txCurrentPage <= 0);
         txNextPageBtn.setDisable(txCurrentPage >= txTotalPages - 1);
     }
