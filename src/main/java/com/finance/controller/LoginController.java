@@ -189,6 +189,8 @@ public class LoginController {
             ToggleButton banglaBtn = new ToggleButton("বাংলা");
             englishBtn.setToggleGroup(group);
             banglaBtn.setToggleGroup(group);
+            englishBtn.getStyleClass().add("notes-lang");
+            banglaBtn.getStyleClass().add("notes-lang");
             Preferences prefs = Preferences.userNodeForPackage(LoginController.class);
             group.selectedToggleProperty().addListener((obs, old, selected) -> {
                 if (selected == null) { old.setSelected(true); return; } // keep one language always selected
@@ -205,6 +207,7 @@ public class LoginController {
         alert.setTitle("What's new in " + availableUpdate.getVersion());
         alert.setHeaderText(null);
         alert.getDialogPane().setContent(content);
+        alert.getDialogPane().getStyleClass().add("notes-dialog");
         alert.showAndWait();
     }
 
